@@ -1,0 +1,18 @@
+<span class="star-row">
+  {% if count %}
+    {% with lit=score|floatformat:0|add:0 %}
+      <span class="star-icons" aria-hidden="true">{% include "talent/star_marks.html" %}</span>
+      <span class="star-num">{{ score|floatformat:1 }}</span>
+    {% endwith %}
+  {% elif staff %}
+    {% with lit=staff %}
+      <span class="star-icons" aria-hidden="true">{% include "talent/star_marks.html" %}</span>
+      <span class="star-num">{{ staff }}</span>
+    {% endwith %}
+  {% else %}
+    {% with lit=0 %}
+      <span class="star-icons" aria-hidden="true">{% include "talent/star_marks.html" %}</span>
+      <span class="star-num">بدون امتیاز</span>
+    {% endwith %}
+  {% endif %}
+</span>

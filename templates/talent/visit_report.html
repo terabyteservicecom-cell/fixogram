@@ -1,0 +1,88 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}گزارش بازدید — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>گزارش بازدید سایت</h1>
+<p>بازدید یعنی هر بار باز شدن یک صفحه. نفر یعنی نشست جدا. مهمان‌ها با نام دیده نمی‌شوند؛ فقط اگر وارد شده باشند نامشان در فهرست آنلاین می‌آید.</p>
+<p><a href="{% url 'reports' %}">بازگشت به گزارشات</a></p>
+
+{% include "talent/report_range.html" %}
+<p class="muted">در این بازه {{ people }} نفر یکتا آمده‌اند. الان {{ online_count }} نفر آنلاین‌اند ({{ online_minutes }} دقیقه اخیر).</p>
+
+<section class="panel">
+  <h2>افراد آنلاین</h2>
+  {% if online %}
+    <table class="report">
+      <thead>
+        <tr>
+          <th>نام</th>
+          <th>صفحه</th>
+          <th>آخرین فعالیت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for person in online %}
+          <tr>
+            <td>{{ person.name }}</td>
+            <td>{{ person.page }}</td>
+            <td>{{ person.when }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">الان کسی در سایت نیست.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>بازدید روز به روز</h2>
+  {% if days %}
+    <table class="report">
+      <thead>
+        <tr>
+          <th>تاریخ</th>
+          <th>بازدید</th>
+          <th>نفر</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in days %}
+          <tr>
+            <td>{{ row.day_label }}</td>
+            <td>{{ row.views_label }}</td>
+            <td>{{ row.people_label }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">در این بازه بازدیدی ثبت نشده است.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>صفحه‌ها</h2>
+  {% if pages %}
+    <table class="report">
+      <thead>
+        <tr>
+          <th>صفحه</th>
+          <th>بازدید</th>
+          <th>نفر</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in pages %}
+          <tr>
+            <td>{{ row.label }}</td>
+            <td>{{ row.views_label }}</td>
+            <td>{{ row.people_label }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">صفحه‌ای در این بازه باز نشده است.</p>
+  {% endif %}
+</section>
+{% endblock %}

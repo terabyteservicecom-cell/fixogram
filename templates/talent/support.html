@@ -1,0 +1,72 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}تیکت و تخلف — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>تیکت و گزارش تخلف</h1>
+<p>تیکت‌ها را پاسخ بده. گزارش تخلف را رسیدگی کن یا رد کن. اگر تخلف جدی بود، از بخش حساب‌ها همان شخص را بایگانی کن.</p>
+
+<section class="panel" id="tickets">
+  <h2>تیکت‌های باز</h2>
+  {% for ticket in open_tickets %}
+    <article class="block">
+      <p>
+        <strong>{{ ticket.subject }}</strong>
+        — <a href="{% url 'profile' ticket.author.profile.pk %}">{{ ticket.author.profile.display_name }}</a>
+      </p>
+      <p class="pre">{{ ticket.body }}</p>
+      <form method="post" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="ticket">
+        <input type="hidden" name="id" value="{{ ticket.pk }}">
+        <label>پاسخ
+          <textarea name="reply" rows="3" required></textarea>
+        </label>
+        <button type="submit" name="action" value="reply">ثبت پاسخ</button>
+        <button class="quiet" type="submit" name="action" value="close">بستن بدون پاسخ</button>
+      </form>
+    </article>
+  {% empty %}
+    <p class="muted">تیکت بازی نیست.</p>
+  {% endfor %}
+</section>
+
+{% if recent_tickets %}
+<section class="panel">
+  <h2>تیکت‌های قبلی</h2>
+  {% for ticket in recent_tickets %}
+    <article class="block">
+      <p><strong>{{ ticket.subject }}</strong> · {{ ticket.get_status_display }}</p>
+      {% if ticket.reply %}<p class="pre">{{ ticket.reply }}</p>{% endif %}
+    </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="panel" id="violations">
+  <h2>گزارش تخلف</h2>
+  {% for item in pending_reports %}
+    <article class="block">
+      <p>
+        <span class="badge wait">{{ item.get_reason_display }}</span>
+        <a href="{% url 'profile' item.reporter.profile.pk %}">{{ item.reporter.profile.display_name }}</a>
+        {% if item.job %}
+          درباره آگهی
+          <a href="{% url 'job_detail' item.job.pk %}">{{ item.job.title }}</a>
+        {% else %}
+          درباره
+          <a href="{% url 'profile' item.profile.pk %}">{{ item.profile.display_name }}</a>
+        {% endif %}
+      </p>
+      <p class="pre">{{ item.body }}</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="violation">
+        <input type="hidden" name="id" value="{{ item.pk }}">
+        <button type="submit" name="action" value="review">رسیدگی شد</button>
+        <button class="quiet" type="submit" name="action" value="dismiss">رد گزارش</button>
+      </form>
+    </article>
+  {% empty %}
+    <p class="muted">گزارش تخلفی در انتظار نیست.</p>
+  {% endfor %}
+</section>
+{% endblock %}

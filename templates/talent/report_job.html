@@ -1,0 +1,17 @@
+{% extends "talent/base.html" %}
+{% block title %}گزارش تخلف — فیکسوگرام{% endblock %}
+{% block content %}
+<h1>گزارش تخلف</h1>
+<p>درباره آگهی <a href="{% url 'job_detail' post.pk %}">{{ post.title }}</a>. این گزارش فقط مدیر و پشتیبان می‌بینند.</p>
+{% if existing %}
+  <p>یک گزارش باز از طرف تو برای این آگهی ثبت شده و هنوز دست مدیر است.</p>
+{% else %}
+  <section class="panel">
+    <form method="post" class="stack">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">ثبت گزارش</button>
+    </form>
+  </section>
+{% endif %}
+{% endblock %}

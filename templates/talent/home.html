@@ -1,0 +1,171 @@
+{% extends "talent/base.html" %}
+{% load static %}
+{% block title %}فیکسوگرام — متخصص تعمیر و آموزش{% endblock %}
+{% block content %}
+{% include "talent/banner_rotator.html" with slider_id="home-banners" %}
+<section class="hero">
+  <p class="eyebrow">{{ home_copy.eyebrow }}</p>
+  <h1>{{ home_copy.headline }}</h1>
+  <p>{{ home_copy.lead }}</p>
+</section>
+
+<form class="global-search" id="search-form" method="get">
+  <label>جستجوی کلی
+    <input type="search" name="q" value="{{ request.GET.q }}" placeholder="هر کلمه‌ای: نام، شهر، لپ‌تاپ، پرینتر، آموزش" autocomplete="off">
+  </label>
+  {% if request.GET.city %}<input type="hidden" name="city" value="{{ request.GET.city }}">{% endif %}
+  {% if request.GET.town %}<input type="hidden" name="town" value="{{ request.GET.town }}">{% endif %}
+  {% if request.GET.category %}<input type="hidden" name="category" value="{{ request.GET.category }}">{% endif %}
+  {% if request.GET.role %}<input type="hidden" name="role" value="{{ request.GET.role }}">{% endif %}
+  {% if request.GET.lat %}<input type="hidden" name="lat" value="{{ request.GET.lat }}">{% endif %}
+  {% if request.GET.lng %}<input type="hidden" name="lng" value="{{ request.GET.lng }}">{% endif %}
+  <button type="submit">پیدا کن</button>
+</form>
+
+{% if topic_hits %}
+  <ul class="topic-hits">
+    {% for hit in topic_hits %}
+      <li><a href="{{ hit.url }}">{{ hit.kind }}: {{ hit.label }}</a></li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+  <p class="result-count">
+  {{ result_count }} مورد پیدا شد
+  {% if request.GET.q %}برای «{{ request.GET.q }}»{% endif %}
+  {% if request.GET.lat %}در فاصله تا {{ request.GET.radius|default:"20" }} کیلومتر از موقعیت تو{% endif %}
+</p>
+<section class="cards">
+  {% for profile in page %}
+    <a class="card" href="{% url 'profile' profile.pk %}">
+      {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" alt="">
+      {% else %}
+        <span class="fallback">{{ profile.display_name|slice:":1" }}</span>
+      {% endif %}
+      <span class="name-line"><strong>{{ profile.display_name }}</strong>{% if profile.is_vip %}<span class="vip">VIP</span><span class="id-ok">هویت تایید شد</span>{% endif %}</span>
+      {% if profile.business_name %}<span>{{ profile.business_name }}</span>{% endif %}
+      <span class="muted">{% if profile.city %}{{ profile.city }}{% endif %}{% if profile.province %} · {{ profile.province }}{% endif %}</span>
+      <span>{{ profile.headline }}</span>
+      {% include "talent/stars.html" with score=profile.score_avg count=profile.score_count staff=profile.staff_score %}
+      {% if profile.distance_km %}<span class="muted">حدود {{ profile.distance_km }} کیلومتر</span>{% endif %}
+    </a>
+  {% empty %}
+    <p class="empty">{% if request.GET.lat %}در این فاصله کسی با موقعیت تاییدشده پیدا نشد. شعاع را بیشتر کن، یا متخصص باید موقعیتش را تایید کرده باشد.{% elif request.GET.q %}با این کلمه کسی پیدا نشد. نام، شهر، تخصص یا نام دسته را امتحان کن.{% else %}{{ home_copy.empty_people }}{% endif %}</p>
+  {% endfor %}
+</section>
+{% if page.has_other_pages %}
+  <p class="pager">
+    {% if page.has_previous %}
+      <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.previous_page_number }}">قبلی</a>
+    {% endif %}
+    <span>صفحه {{ page.number }}</span>
+    {% if page.has_next %}
+      <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.next_page_number }}">بعدی</a>
+    {% endif %}
+  </p>
+{% endif %}
+
+<section class="sections" aria-label="بخش‌ها">
+  {% for card in section_cards %}
+    <article class="section-group">
+      <a class="section-head" href="{% url 'section' card.category.slug %}">
+        {% if card.banner %}
+          <img src="{{ card.banner.image.url }}" alt="">
+        {% else %}
+          <span class="section-fallback">{{ card.category.name|slice:":1" }}</span>
+        {% endif %}
+        <span class="section-head-text">
+          <strong>{{ card.category.name }}</strong>
+          <span>{{ home_copy.section_link }}</span>
+        </span>
+      </a>
+      {% url 'section' card.category.slug as share_path %}
+      {% include "talent/share_save.html" with kind="section" object_id=card.category.pk saved=card.saved share_path=share_path title=card.category.name %}
+      {% if card.category.children.all %}
+        <div class="subcats">
+          {% for child in card.category.children.all %}
+            <a href="{% url 'section' child.slug %}">{{ child.name }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+  {% endfor %}
+</section>
+
+<section class="panel" id="jobs-home">
+  <h2>{{ home_copy.jobs_title }}</h2>
+  <p class="muted">{{ home_copy.jobs_lead }}</p>
+  <div class="cards">
+    {% for post in recent_jobs %}
+      <a class="card" href="{% url 'job_detail' post.pk %}">
+        <span class="badge {% if post.kind == 'hire' %}ok{% else %}wait{% endif %}">{{ post.get_kind_display }}</span>
+        <strong>{{ post.title }}</strong>
+        <span class="muted">{{ post.author.profile.display_name }}{% if post.city %} · {{ post.city }}{% endif %} · {{ post.stay_line }}</span>
+      </a>
+    {% empty %}
+      <p class="empty">{{ home_copy.empty_jobs }}</p>
+    {% endfor %}
+  </div>
+  <p><a class="button" href="{% url 'jobs' %}">{{ home_copy.jobs_button }}</a></p>
+</section>
+
+<form class="search" id="filter-form" method="get">
+  <label>نام یا هر کلمه
+    <input type="search" name="q" value="{{ request.GET.q }}" placeholder="نام، شهر یا تخصص">
+  </label>
+  <label>استان
+    <select name="city" id="province-select">
+      <option value="">همه</option>
+      {% for name in provinces %}
+        <option value="{{ name }}" {% if request.GET.city == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>شهر
+    <select name="town" id="town-select" class="pick-list" data-province-select="province-select">
+      <option value="">همه</option>
+      {% for name, province in cities %}
+        <option value="{{ name }}" data-province="{{ province }}" {% if request.GET.town == name %}selected{% endif %}>{{ name }} — {{ province }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>دسته
+    <select name="category" id="category-select">
+      <option value="">همه</option>
+      {% for category in categories %}
+        <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>{{ category }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>تخصص
+    <select name="role" id="role-select" class="pick-list" data-category-select="category-select">
+      <option value="">همه</option>
+      {% for role in roles %}
+        <option value="{{ role.id }}" data-category="{{ role.category_id }}" {% if request.GET.role == role.id|stringformat:"s" %}selected{% endif %}>{{ role.category.name }} — {{ role.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>فاصله
+    <select name="radius">
+      <option value="5" {% if request.GET.radius == "5" %}selected{% endif %}>تا ۵ کیلومتر</option>
+      <option value="10" {% if request.GET.radius == "10" %}selected{% endif %}>تا ۱۰ کیلومتر</option>
+      <option value="20" {% if request.GET.radius == "20" or not request.GET.radius %}selected{% endif %}>تا ۲۰ کیلومتر</option>
+      <option value="50" {% if request.GET.radius == "50" %}selected{% endif %}>تا ۵۰ کیلومتر</option>
+    </select>
+  </label>
+  <input type="hidden" name="lat" id="near-lat" value="{{ request.GET.lat }}">
+  <input type="hidden" name="lng" id="near-lng" value="{{ request.GET.lng }}">
+  {% include "talent/map_assets.html" %}
+  {% include "talent/location_picker.html" with picker_id="near" lat_id="near-lat" lng_id="near-lng" title="جستجو نزدیک خودت" hint="موقعیتت را باز کن، روی نقشه تایید کن تا متخصص‌های همان اطراف بیایند." confirm_label="تایید و پیدا کن" submit_form="filter-form" start_hidden=1 external_open=1 %}
+  <div class="search-actions">
+    <label class="check">
+      <input type="checkbox" name="verified" value="1" {% if request.GET.verified == "1" %}checked{% endif %}>
+      فقط تاییدشده‌ها
+    </label>
+    <button type="button" id="near-open" class="quiet">نزدیک من</button>
+    <button type="submit">پیدا کن</button>
+  </div>
+</form>
+<script src="{% static 'talent/pick.js' %}?v=2"></script>
+{% endblock %}

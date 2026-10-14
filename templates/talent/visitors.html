@@ -1,0 +1,159 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}ویزیتورها — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>ویزیتورها</h1>
+<p class="muted">شهر و توضیحات جزو مشخصات ویزیتور است. فهرست را با نام و شهر فیلتر کن.</p>
+
+<section class="panel" id="new-visitor">
+  <h2>ویزیتور تازه</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="kind" value="create-visitor">
+    <input type="hidden" name="filter_name" value="{{ name_query }}">
+    <input type="hidden" name="filter_city" value="{{ city_query }}">
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <p>
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </p>
+    {% endfor %}
+    <button type="submit">ساخت ویزیتور</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>آمار پذیرش</h2>
+  <form method="get" class="visitor-search">
+    <label>
+      نام ویزیتور
+      <input type="search" name="name" value="{{ name_query }}" placeholder="اسم ویزیتور" autocomplete="off">
+    </label>
+    <label>
+      شهر ویزیتور
+      <select name="city">
+        <option value="">همه شهرها</option>
+        {% for value, label in city_options %}
+          {% if value %}
+            <option value="{{ value }}" {% if value == city_query %}selected{% endif %}>{{ label }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">جستجو</button>
+  </form>
+  <p class="muted">{{ visitors|length }} از {{ visitor_total }} ویزیتور</p>
+  {% if visitors %}
+    <div class="visitor-grid">
+      {% for account in visitors %}
+        <article class="visitor-card">
+          <p><strong>{{ account.display_name }}</strong></p>
+          <p>
+            {% if account.city %}{{ account.city }}{% else %}شهر ثبت نشده{% endif %}
+            · <span dir="ltr">{{ account.phone }}</span>
+          </p>
+          {% if account.bio %}<p class="muted">{{ account.bio|truncatechars:90 }}</p>{% endif %}
+          <p>کل {{ account.recruit_total }} · منتظر {{ account.recruit_pending }} · تایید {{ account.recruit_approved }} · آماده تسویه {{ account.recruit_unsettled }}</p>
+          <div class="visitor-actions">
+            <details>
+              <summary>ویرایش</summary>
+              <form method="post" class="stack">
+                {% csrf_token %}
+                <input type="hidden" name="kind" value="save-specs">
+                <input type="hidden" name="id" value="{{ account.pk }}">
+                <input type="hidden" name="filter_name" value="{{ name_query }}">
+                <input type="hidden" name="filter_city" value="{{ city_query }}">
+                <p>
+                  <label for="name-{{ account.pk }}">نام</label>
+                  <input id="name-{{ account.pk }}" name="display_name" maxlength="80" required value="{{ account.display_name }}">
+                </p>
+                <p>
+                  <label for="phone-{{ account.pk }}">شماره</label>
+                  <input id="phone-{{ account.pk }}" name="phone" maxlength="20" required dir="ltr" inputmode="tel" value="{{ account.phone }}">
+                </p>
+                <p>
+                  <label for="city-{{ account.pk }}">شهر</label>
+                  <select id="city-{{ account.pk }}" name="city" required>
+                    <option value="">انتخاب شهر</option>
+                    {% for value, label in city_options %}
+                      {% if value %}
+                        <option value="{{ value }}" {% if value == account.city %}selected{% endif %}>{{ label }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                </p>
+                <p>
+                  <label for="about-{{ account.pk }}">توضیحات</label>
+                  <textarea id="about-{{ account.pk }}" name="about" rows="3">{{ account.bio }}</textarea>
+                </p>
+                <button type="submit">ذخیره ویرایش</button>
+              </form>
+            </details>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="close-visitor">
+              <input type="hidden" name="id" value="{{ account.pk }}">
+              <input type="hidden" name="filter_name" value="{{ name_query }}">
+              <input type="hidden" name="filter_city" value="{{ city_query }}">
+              <button class="quiet" type="submit">غیرفعال</button>
+            </form>
+          </div>
+          <details>
+            <summary>تسویه و فهرست</summary>
+            <form method="post" class="stack">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="settle">
+              <input type="hidden" name="id" value="{{ account.pk }}">
+              <input type="hidden" name="filter_name" value="{{ name_query }}">
+              <input type="hidden" name="filter_city" value="{{ city_query }}">
+              <p>
+                <label for="amount-{{ account.pk }}">مبلغ تسویه</label>
+                <input id="amount-{{ account.pk }}" name="amount" maxlength="40" inputmode="numeric">
+              </p>
+              <p>
+                <label for="note-{{ account.pk }}">شرح</label>
+                <textarea id="note-{{ account.pk }}" name="note" rows="2"></textarea>
+              </p>
+              <button type="submit">تسویه شد</button>
+            </form>
+            {% if account.settlement_rows %}
+              {% for item in account.settlement_rows %}
+                <p class="muted">{{ item.when }} · {{ item.recruit_count }} نفر{% if item.amount %} · {{ item.amount }}{% endif %}{% if item.note %} · {{ item.note }}{% endif %}</p>
+              {% endfor %}
+            {% endif %}
+            {% if account.recruit_rows %}
+              <table class="report">
+                <thead>
+                  <tr>
+                    <th>نام پروفایل</th>
+                    <th>شماره</th>
+                    <th>وضعیت</th>
+                    <th>فایل</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in account.recruit_rows %}
+                    <tr>
+                      <td>{{ row.display_name|default:"بدون نام" }}</td>
+                      <td dir="ltr">{{ row.phone }}</td>
+                      <td>{{ row.get_account_status_display }}</td>
+                      <td>{% if row.visit_file %}<a href="{% url 'visit_file' row.pk %}">فایل</a>{% else %}—{% endif %}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted">هنوز شماره‌ای ثبت نکرده.</p>
+            {% endif %}
+          </details>
+        </article>
+      {% endfor %}
+    </div>
+  {% elif name_query or city_query %}
+    <p class="muted">ویزیتوری با این جستجو پیدا نشد.</p>
+  {% else %}
+    <p class="muted">هنوز ویزیتوری ساخته نشده.</p>
+  {% endif %}
+</section>
+{% endblock %}

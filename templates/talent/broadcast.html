@@ -1,0 +1,28 @@
+{% extends "talent/staff_base.html" %}
+{% load talent_tags %}
+{% block title %}پیام گروهی — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>پیام گروهی</h1>
+<p>یک متن برای متخصص‌های تاییدشده یک دسته بفرست. زیرمجموعه‌ها هم شامل می‌شوند. پیام مستقیم در صندوق پیام همان افراد می‌آید و لازم نیست دوباره تایید شود.</p>
+
+<section class="panel">
+  <h2>پیام تازه</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">فرستادن به این دسته</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>پیام‌های فرستاده‌شده</h2>
+  {% for item in sent %}
+    <article class="block">
+      <p><strong>{{ item.category.name }}</strong> · {{ item.recipient_count }} نفر · {{ item.created_at|jalali_dt }}</p>
+      <p class="pre">{{ item.body }}</p>
+    </article>
+  {% empty %}
+    <p class="muted">هنوز پیام گروهی نفرستاده‌ای.</p>
+  {% endfor %}
+</section>
+{% endblock %}

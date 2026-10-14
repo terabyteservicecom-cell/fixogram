@@ -1,0 +1,66 @@
+{% extends "talent/base.html" %}
+{% load talent_tags %}
+{% block title %}بلاگ — فیکسوگرام{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="مسیر">
+  <a href="{% url 'home' %}">فیکسوگرام</a>
+  {% if current %}
+    <a href="{% url 'blog' %}">بلاگ</a>
+    <span>{{ current.name }}</span>
+  {% else %}
+    <span>بلاگ</span>
+  {% endif %}
+</nav>
+<h1>{% if current %}{{ current.name }}{% else %}بلاگ{% endif %}</h1>
+<p>نوشته‌ها درباره تعمیر، آموزش و نگهداری دستگاه‌ها.</p>
+{% if user.is_staff %}
+  <p><a class="button small" href="{% url 'blog_write' %}">نوشتن یا دسته‌بندی</a></p>
+{% endif %}
+
+{% if banners %}
+  <div class="banner-pair" aria-label="تبلیغات بلاگ">
+    {% for banner in banners %}
+      <a href="{% url 'banner_go' banner.pk %}" target="_blank" rel="noopener noreferrer">
+        <img src="{{ banner.image.url }}" alt="{{ banner.title|default:'تبلیغ' }}">
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<nav class="blog-cats" aria-label="دسته‌های بلاگ">
+  <a href="{% url 'blog' %}" {% if not current %}class="active"{% endif %}>
+    <strong>همه نوشته‌ها</strong>
+    <span>{{ post_total }} نوشته</span>
+  </a>
+  {% for category in categories %}
+    <a href="{% url 'blog' %}?category={{ category.pk }}" {% if current.pk == category.pk %}class="active"{% endif %}>
+      <strong>{{ category.name }}</strong>
+      <span>{{ category.post_count }} نوشته</span>
+    </a>
+  {% endfor %}
+</nav>
+
+<div class="post-list">
+  {% for post in page %}
+    <a class="card" href="{% url 'blog_detail' post.pk %}">
+      <span class="badge ok">{{ post.category.name }}</span>
+      <strong>{{ post.title }}</strong>
+      <span class="muted">{{ post.created_at|jalali }}</span>
+    </a>
+  {% empty %}
+    <p class="empty">در این دسته هنوز نوشته‌ای منتشر نشده.</p>
+  {% endfor %}
+</div>
+
+{% if page.has_other_pages %}
+  <p class="pager">
+    {% if page.has_previous %}
+      <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.previous_page_number }}">قبلی</a>
+    {% endif %}
+    <span>صفحه {{ page.number }}</span>
+    {% if page.has_next %}
+      <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.next_page_number }}">بعدی</a>
+    {% endif %}
+  </p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "talent/base.html" %}
+{% block title %}{% if signing_up %}ثبت‌نام{% else %}ورود{% endif %} — فیکسوگرام{% endblock %}
+{% block content %}
+<section class="auth">
+  {% if signing_up %}
+    <div class="auth-lead">
+      <h1>ثبت‌نام متخصص</h1>
+      <p>نام و شماره موبایل را بنویس. کد ورود همان لحظه پیامک می‌شود. بعد از ورود اطلاعات را کامل کن؛ صفحه تو تا تایید مدیر یا پشتیبان در جستجو نمی‌آید.</p>
+    </div>
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      {% for field in form %}
+        {% if field.name == "accepted" %}
+          <label class="check">
+            {{ field }}
+            <span>شرایط استفاده را خواندم و <a href="{% url 'terms' %}">قبول دارم</a>.</span>
+          </label>
+          {{ field.errors }}
+        {% else %}
+          <label>
+            {{ field.label }}
+            {{ field }}
+            {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+            {{ field.errors }}
+          </label>
+        {% endif %}
+      {% endfor %}
+      <button type="submit">ثبت‌نام</button>
+      <p class="muted auth-note">اگر قبلاً آمده‌ای، <a href="{% url 'login' %}">وارد شو</a>.</p>
+    </form>
+  {% else %}
+    <div class="auth-lead">
+      <h1>ورود با کد یک‌بارمصرف</h1>
+      <p>شماره موبایل را بنویس. یک کد ۴ رقمی پیامک می‌شود و تا ۲ دقیقه معتبر است.</p>
+    </div>
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">دریافت کد</button>
+      <p class="muted auth-note">حساب نداری؟ <a href="{% url 'signup' %}">ثبت‌نام کن</a>. هر شماره فقط یک حساب دارد.</p>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

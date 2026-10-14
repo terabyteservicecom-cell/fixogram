@@ -1,0 +1,44 @@
+{% extends "talent/base.html" %}
+{% load talent_tags %}
+{% block title %}کیف پول — فیکسوگرام{% endblock %}
+{% block content %}
+<section class="narrow">
+  <h1>کیف پول</h1>
+  <p>موجودی: <strong>{{ balance_label }} تومان</strong></p>
+  {% if profile.is_public %}
+    <p>صفحه تو تا {{ profile.listed_until|jalali }} برای بقیه باز است. اگر قبل از آن تاریخ دوباره بخری، یک سال به همان تاریخ اضافه می‌شود.</p>
+  {% else %}
+    <p>صفحه تو الان برای بقیه بسته است. با خرید یک سال، اسم و اطلاعاتت در جستجو دیده می‌شود.</p>
+  {% endif %}
+  <p>قیمت هر سال: <strong>{{ price_label }} تومان</strong></p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="buy">
+    <button type="submit">خرید یک سال</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>شارژ کیف پول</h2>
+  <p class="muted">پول را بیرون از سایت به مدیر می‌دهی. وقتی مدیر شارژی را تایید کند که به قیمت یک سال برسد، صفحه خودت در جستجو باز می‌شود.</p>
+  {% if pending %}
+    <p>درخواست {{ pending.amount }} تومان منتظر تایید مدیر است.</p>
+  {% else %}
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <input type="hidden" name="form" value="charge">
+      {{ form.as_p }}
+      <button type="submit">درخواست شارژ</button>
+    </form>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>گردش حساب</h2>
+  {% for entry in entries %}
+    <p class="row">{{ entry.created_at|jalali }} — {{ entry.note }} — {{ entry.amount }} تومان</p>
+  {% empty %}
+    <p class="muted">هنوز گردشی نیست.</p>
+  {% endfor %}
+</section>
+{% endblock %}

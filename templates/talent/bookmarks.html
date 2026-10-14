@@ -1,0 +1,28 @@
+{% extends "talent/base.html" %}
+{% block title %}ذخیره‌ها — فیکسوگرام{% endblock %}
+{% block content %}
+<h1>ذخیره‌های من</h1>
+<p class="muted">بخش، متخصص، آگهی و نوشته‌ای که ذخیره کرده‌ای اینجاست. هر وقت خواستی از ذخیره خارجش کن.</p>
+{% for row in rows %}
+  <article class="block">
+    <p>
+      <span class="badge wait">{{ row.kind_label }}</span>
+      {% if row.url %}
+        <a href="{{ row.url }}"><strong>{{ row.title }}</strong></a>
+      {% else %}
+        <strong>{{ row.title }}</strong>
+      {% endif %}
+      {% if row.note %}<span class="muted">{{ row.note }}</span>{% endif %}
+    </p>
+    <form method="post" action="{% url 'toggle_bookmark' %}">
+      {% csrf_token %}
+      <input type="hidden" name="kind" value="{{ row.kind }}">
+      <input type="hidden" name="id" value="{{ row.object_id }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="quiet" type="submit">برداشتن از ذخیره</button>
+    </form>
+  </article>
+{% empty %}
+  <p class="empty">هنوز چیزی ذخیره نکرده‌ای.</p>
+{% endfor %}
+{% endblock %}

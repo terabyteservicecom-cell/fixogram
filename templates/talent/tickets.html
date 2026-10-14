@@ -1,0 +1,36 @@
+{% extends "talent/base.html" %}
+{% block title %}تیکت پشتیبانی — فیکسوگرام{% endblock %}
+{% block content %}
+<h1>تیکت برای مدیریت</h1>
+<p>اگر سوال یا مشکلی داری، اینجا برای مدیر و پشتیبان بنویس. پاسخ همان پایین تیکت دیده می‌شود.</p>
+
+<section class="panel">
+  <h2>تیکت جدید</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">ثبت تیکت</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>تیکت‌های من</h2>
+  {% for ticket in tickets %}
+    <article class="block">
+      <p>
+        <strong>{{ ticket.subject }}</strong>
+        {% if ticket.status == "open" %}<span class="badge wait">در انتظار</span>
+        {% elif ticket.status == "answered" %}<span class="badge ok">پاسخ داده شد</span>
+        {% else %}<span class="badge">بسته شد</span>{% endif %}
+      </p>
+      <p class="pre">{{ ticket.body }}</p>
+      {% if ticket.reply %}
+        <p class="muted">پاسخ مدیریت</p>
+        <p class="pre">{{ ticket.reply }}</p>
+      {% endif %}
+    </article>
+  {% empty %}
+    <p class="muted">هنوز تیکتی نزده‌ای.</p>
+  {% endfor %}
+</section>
+{% endblock %}

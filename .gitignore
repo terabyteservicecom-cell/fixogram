@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+database/
+media/
+private/
+staticfiles/
+.env
+*.log
+academy/
+it_hospital/
+ot_sefaresh/
+academy-ist.zip
+tmp_docs.py
+*.tar
+*.zip

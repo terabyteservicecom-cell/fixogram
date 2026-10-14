@@ -1,0 +1,45 @@
+{% extends "talent/base.html" %}
+{% block content %}
+<div class="desk">
+  <nav class="desk-nav" aria-label="بخش‌های پنل">
+    <p class="eyebrow">پنل فیکسوگرام</p>
+    <a href="{% url 'desk' %}" {% if request.resolver_match.url_name == "desk" %}aria-current="page"{% endif %}>نمای کلی</a>
+    {% if staff_access.tickets %}
+      <a href="{% url 'support' %}" {% if request.resolver_match.url_name == "support" %}aria-current="page"{% endif %}>تیکت و تخلف{% if ticket_count %} <span class="count">{{ ticket_count }}</span>{% endif %}</a>
+    {% endif %}
+    {% if staff_access.moderate %}
+      <a href="{% url 'moderation' %}" {% if request.resolver_match.url_name == "moderation" %}aria-current="page"{% endif %}>
+        صف تایید
+        {% if moderation_count %}<span class="count">{{ moderation_count }}</span>{% endif %}
+      </a>
+      <a href="{% url 'system_users' %}" {% if request.resolver_match.url_name == "system_users" %}aria-current="page"{% endif %}>کاربران</a>
+      <a href="{% url 'manage_jobs' %}" {% if request.resolver_match.url_name == "manage_jobs" %}aria-current="page"{% endif %}>استخدام و آماده به کار</a>
+    {% endif %}
+    {% if staff_access.categories %}
+      <a href="{% url 'categories' %}" {% if request.resolver_match.url_name == "categories" %}aria-current="page"{% endif %}>دسته‌ها و تخصص‌ها</a>
+    {% endif %}
+    {% if staff_access.broadcast %}
+      <a href="{% url 'broadcast' %}" {% if request.resolver_match.url_name == "broadcast" %}aria-current="page"{% endif %}>پیام گروهی</a>
+    {% endif %}
+    {% if staff_access.banners %}
+      <a href="{% url 'banners' %}" {% if request.resolver_match.url_name == "banners" %}aria-current="page"{% endif %}>بنر تبلیغ</a>
+    {% endif %}
+    {% if staff_access.reports %}
+      <a href="{% url 'reports' %}" {% if request.resolver_match.url_name == "reports" or request.resolver_match.url_name == "visit_report" or request.resolver_match.url_name == "banner_report" %}aria-current="page"{% endif %}>گزارشات</a>
+    {% endif %}
+    {% if staff_access.blog %}
+      <a href="{% url 'blog_write' %}" {% if request.resolver_match.url_name == "blog_write" or request.resolver_match.url_name == "blog_edit" %}aria-current="page"{% endif %}>بلاگ</a>
+    {% endif %}
+    {% if request.user.is_superuser %}
+      <a href="{% url 'visitors' %}" {% if request.resolver_match.url_name == "visitors" %}aria-current="page"{% endif %}>ویزیتورها</a>
+      <a href="{% url 'supporters' %}" {% if request.resolver_match.url_name == "supporters" %}aria-current="page"{% endif %}>تعریف پشتیبان</a>
+      <a href="{% url 'support_report' %}" {% if request.resolver_match.url_name == "support_report" %}aria-current="page"{% endif %}>کارکرد پشتیبان</a>
+      <a href="{% url 'sms_settings' %}" {% if request.resolver_match.url_name == "sms_settings" %}aria-current="page"{% endif %}>پیامک ورود</a>
+      <a href="{% url 'admin:index' %}">ویرایش رکوردها</a>
+    {% endif %}
+  </nav>
+  <div class="desk-main">
+    {% block desk %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}پنل — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>پنل فیکسوگرام</h1>
+<p>کارهای مدیر و پشتیبان همین‌جاست: تایید ثبت‌نام و پیام، آگهی استخدام، دسته‌های تعمیر، بنر تبلیغ و حساب‌ها. الان {{ listed }} متخصص در جستجوی سایت دیده می‌شود.</p>
+
+<div class="stat-grid">
+  {% if staff_access.reports %}
+  <a class="stat online-now" href="{% url 'reports' %}">
+    <strong>{{ online_count }}</strong>
+    <span>نفر آنلاین</span>
+  </a>
+  {% else %}
+  <div class="stat online-now">
+    <strong>{{ online_count }}</strong>
+    <span>نفر آنلاین</span>
+  </div>
+  {% endif %}
+  {% if staff_access.moderate %}
+  <a class="stat{% if counts.signup %} has{% endif %}" href="{% url 'moderation' %}#signups">
+    <strong>{{ counts.signup }}</strong>
+    <span>ثبت‌نام منتظر</span>
+  </a>
+  <a class="stat{% if counts.role %} has{% endif %}" href="{% url 'moderation' %}#roles">
+    <strong>{{ counts.role }}</strong>
+    <span>تخصص منتظر</span>
+  </a>
+  <a class="stat{% if counts.message %} has{% endif %}" href="{% url 'moderation' %}#messages">
+    <strong>{{ counts.message }}</strong>
+    <span>پیام منتظر</span>
+  </a>
+  <a class="stat{% if counts.job %} has{% endif %}" href="{% url 'moderation' %}#jobs">
+    <strong>{{ counts.job }}</strong>
+    <span>آگهی کار منتظر</span>
+  </a>
+  <a class="stat{% if counts.phone %} has{% endif %}" href="{% url 'moderation' %}#phones">
+    <strong>{{ counts.phone }}</strong>
+    <span>درخواست شماره</span>
+  </a>
+  <a class="stat{% if counts.identity %} has{% endif %}" href="{% url 'moderation' %}#identity">
+    <strong>{{ counts.identity }}</strong>
+    <span>ابراز هویت VIP</span>
+  </a>
+  {% endif %}
+</div>
+
+<h2>ابزارهای همین سایت</h2>
+<div class="stat-grid">
+  {% if staff_access.broadcast %}
+  <a class="stat" href="{% url 'broadcast' %}">
+    <strong>پیام گروهی</strong>
+    <span>یک متن برای متخصص‌های یک دسته</span>
+  </a>
+  {% endif %}
+  {% if staff_access.categories %}
+  <a class="stat" href="{% url 'categories' %}">
+    <strong>دسته‌ها</strong>
+    <span>دسته و زیرمجموعه تازه، بدون دست زدن به دسته‌های قبلی</span>
+  </a>
+  {% endif %}
+  {% if staff_access.reports %}
+  <a class="stat" href="{% url 'reports' %}">
+    <strong>گزارشات</strong>
+    <span>بازدید سایت، افراد آنلاین و کلیک بنر</span>
+  </a>
+  {% endif %}
+  {% if staff_access.banners %}
+  <a class="stat" href="{% url 'banners' %}">
+    <strong>بنرها</strong>
+    <span>سه بنر صفحه اول، دو بنر کوچک داخل هر دسته</span>
+  </a>
+  {% endif %}
+  {% if staff_access.blog %}
+  <a class="stat" href="{% url 'blog_write' %}">
+    <strong>بلاگ</strong>
+    <span>دسته و نوشته برای آموزش و خبر</span>
+  </a>
+  {% endif %}
+  {% if staff_access.tickets %}
+  <a class="stat" href="{% url 'support' %}">
+    <strong>تیکت و تخلف</strong>
+    <span>پیام کاربران به مدیریت و گزارش تخلف</span>
+  </a>
+  {% endif %}
+  {% if request.user.is_superuser %}
+  <a class="stat" href="{% url 'sms_settings' %}">
+    <strong>پیامک ورود</strong>
+    <span>کلید و قالب کاوه‌نگار برای کد ۴ رقمی</span>
+  </a>
+  <a class="stat" href="{% url 'visitors' %}">
+    <strong>ویزیتورها</strong>
+    <span>پذیرش با شماره همراه و آمار هر ویزیتور</span>
+  </a>
+  <a class="stat" href="{% url 'supporters' %}">
+    <strong>تعریف پشتیبان</strong>
+    <span>ساخت، ویرایش و حذف، جدا از تعریف کاربر</span>
+  </a>
+  <a class="stat" href="{% url 'support_report' %}">
+    <strong>کارکرد پشتیبان</strong>
+    <span>لاگ کارهایی که پشتیبان‌ها انجام داده‌اند</span>
+  </a>
+  {% endif %}
+  {% if staff_access.moderate %}
+  <a class="stat" href="{% url 'manage_jobs' %}">
+    <strong>{{ counts.job_board }}</strong>
+    <span>استخدام و آماده به کار</span>
+  </a>
+  <a class="stat" href="{% url 'moderation' %}#new-user">
+    <strong>تعریف کاربر</strong>
+    <span>ساخت حساب توسط مدیر یا پشتیبان</span>
+  </a>
+  <a class="stat" href="{% url 'system_users' %}">
+    <strong>{{ user_count }}</strong>
+    <span>کاربران سیستم</span>
+  </a>
+  {% endif %}
+</div>
+
+{% if request.user.is_superuser %}
+<section class="panel" id="page-seo">
+  <h2>سئوی صفحه‌های ثابت</h2>
+  <p class="muted">صفحه اول، استخدام، فهرست بلاگ و شرایط استفاده. دسته تعمیر، دسته بلاگ و هر نوشته فرم سئوی خودش را دارد. کاربرها در صفحه کاربران سیستم.</p>
+  {% for row in page_seo %}
+    {% include "talent/seo_box.html" with obj=row form_name="page_seo" seo_id=row.key %}
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if request.user.is_superuser %}
+<section class="panel" id="home-copy">
+  <h2>نوشته‌های صفحه اصلی</h2>
+  <p class="muted">عنوان، توضیح و متن پایین صفحه. اگر یک کادر را خالی ذخیره کنی، همان متن اولیه برمی‌گردد.</p>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="home_copy">
+    {% for field in home_fields %}
+      <label>{{ field.label }}
+        <textarea name="{{ field.key }}" rows="{% if field.long %}4{% else %}2{% endif %}">{{ field.value }}</textarea>
+      </label>
+    {% endfor %}
+    <button type="submit">ذخیره نوشته‌ها</button>
+  </form>
+</section>
+
+<section class="panel" id="job-warning">
+  <h2>زنگ خطر قبل از همکاری</h2>
+  <p class="muted">این متن بالای هر آگهی استخدام و آماده به کار دیده می‌شود. اگر خالی ذخیره کنی، متن اولیه برمی‌گردد.</p>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="job_warning">
+    <label>متن زنگ خطر
+      <textarea name="job_warning" rows="4">{{ job_warning }}</textarea>
+    </label>
+    <button type="submit">ذخیره زنگ خطر</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel" id="welcome">
+  <h2>اطلاعیه</h2>
+  <p class="muted">وقتی روشن باشد، اولین بار که کسی وارد می‌شود روی صفحه می‌آید. با زدن «دیگر نمایش نده» برای همان نفر دیگر دیده نمی‌شود. اگر متن را عوض کنی، دوباره برای همه نشان داده می‌شود.</p>
+  {% if welcome_note and welcome_note.is_ready %}
+    <p>پیام فعلی ذخیره شده است.{% if welcome_note.audio %} صدا دارد.{% endif %}{% if welcome_note.video %} ویدیو دارد.{% endif %}</p>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="welcome">
+    {{ welcome_form.as_p }}
+    <button type="submit">ذخیره اطلاعیه</button>
+  </form>
+</section>
+{% endblock %}

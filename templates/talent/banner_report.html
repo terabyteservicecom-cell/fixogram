@@ -1,0 +1,61 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}گزارش کلیک بنرها — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>گزارش کلیک بنرها</h1>
+<p>هر بار که کسی روی بنر بزند، یک کلیک برای همان بنر ثبت می‌شود. بازه را انتخاب کن و خروجی را بگیر.</p>
+<p><a href="{% url 'reports' %}">بازگشت به گزارشات</a></p>
+
+{% include "talent/report_range.html" %}
+
+<section class="panel">
+  <h2>جمع هر بنر</h2>
+  <table class="report">
+    <thead>
+      <tr>
+        <th>بنر</th>
+        <th>جا</th>
+        <th>کلیک</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for banner in banners %}
+        <tr>
+          <td>{{ banner.title|default:"بدون عنوان" }}</td>
+          <td>{{ banner.place_label }}</td>
+          <td>{{ banner.clicks_label }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">بنری نیست.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>کلیک روز به روز</h2>
+  {% if days %}
+    <table class="report">
+      <thead>
+        <tr>
+          <th>تاریخ</th>
+          <th>بنر</th>
+          <th>جا</th>
+          <th>کلیک</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in days %}
+          <tr>
+            <td>{{ row.day_label }}</td>
+            <td>{{ row.banner.title|default:"بدون عنوان" }}</td>
+            <td>{{ row.place }}</td>
+            <td>{{ row.total_label }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">در این بازه کلیکی ثبت نشده است.</p>
+  {% endif %}
+</section>
+{% endblock %}

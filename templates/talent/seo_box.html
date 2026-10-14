@@ -1,0 +1,37 @@
+<details class="seo-box"{% if open %} open{% endif %}>
+  <summary>سئو گوگل{% if obj.seo_label %} · {{ obj.seo_label }}{% endif %} · {{ obj.seo_score }} از ۱۰۰{% if obj.seo_errors %} · {{ obj.seo_errors|length }} خطا{% elif obj.seo_notes %} · {{ obj.seo_notes|length }} کمبود{% endif %}</summary>
+  <p class="helptext">عنوان، لینک آبی گوگل است و توضیح، متن خاکستری زیر آن. اگر خالی بماند، سایت یک عنوان و توضیح خودکار می‌سازد. شماره تلفن را در این متن‌ها ننویس.</p>
+  <p><strong>امتیاز سئو: {{ obj.seo_score }} از ۱۰۰</strong></p>
+  {% if obj.seo_errors %}
+    <p class="muted">خطاها</p>
+    <ul class="seo-list bad">
+      {% for item in obj.seo_errors %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  {% else %}
+    <p class="helptext">خطایی که جلوی گوگل را بگیرد نیست.</p>
+  {% endif %}
+  {% if obj.seo_notes %}
+    <p class="muted">کمبودها</p>
+    <ul class="seo-list">
+      {% for item in obj.seo_notes %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+  {% if not hide_form %}
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <input type="hidden" name="form" value="{{ form_name }}">
+      <input type="hidden" name="id" value="{{ seo_id }}">
+      <p>
+        <label for="seo-title-{{ form_name }}-{{ seo_id }}">عنوان</label>
+        <input id="seo-title-{{ form_name }}-{{ seo_id }}" name="seo_title" value="{{ obj.seo_title }}" maxlength="70">
+        <span class="helptext">حدود ۵۰ تا ۶۰ حرف.{% if obj.sample_title %} نمونه: {{ obj.sample_title }}{% else %} نمونه: {{ obj.name }} در فیکسوگرام{% endif %}</span>
+      </p>
+      <p>
+        <label for="seo-text-{{ form_name }}-{{ seo_id }}">توضیح</label>
+        <textarea id="seo-text-{{ form_name }}-{{ seo_id }}" name="seo_description" rows="3" maxlength="170">{{ obj.seo_description }}</textarea>
+        <span class="helptext">حدود ۱۲۰ تا ۱۶۰ حرف.{% if obj.sample_text %} نمونه: {{ obj.sample_text }}{% else %} یک جمله که بگوید این بخش چیست و به درد چه کسی می‌خورد.{% endif %}</span>
+      </p>
+      <button type="submit">ذخیره سئو</button>
+    </form>
+  {% endif %}
+</details>

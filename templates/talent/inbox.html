@@ -1,0 +1,21 @@
+{% extends "talent/base.html" %}
+{% block title %}پیام‌ها — فیکسوگرام{% endblock %}
+{% block content %}
+<h1>پیام‌ها</h1>
+<p class="muted">هماهنگی کار از همین‌جا انجام می‌شود.</p>
+{% for thread in threads %}
+  <a class="row" href="{% url 'thread' thread.pk %}">
+    <strong>
+      {% if thread.user_low_id == user.id %}
+        {{ thread.user_high.profile.display_name }}
+      {% else %}
+        {{ thread.user_low.profile.display_name }}
+      {% endif %}
+      {% if thread.has_unread %}<span class="badge wait">جدید</span>{% endif %}
+    </strong>
+    <span class="muted">{{ thread.last_body|default:"هنوز پیامی نیست"|truncatechars:80 }}</span>
+  </a>
+{% empty %}
+  <p class="empty">هنوز گفتگویی نداری. از صفحه یک نفر، دکمه ارسال پیام را بزن.</p>
+{% endfor %}
+{% endblock %}

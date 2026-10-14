@@ -1,0 +1,25 @@
+<article class="{% if root %}cat-root{% else %}cat-leaf{% endif %}">
+  <div class="cat-row">
+    <form method="post" action="{% url 'categories' %}">
+      {% csrf_token %}
+      <input type="hidden" name="form" value="category_edit">
+      <input type="hidden" name="id" value="{{ node.category.pk }}">
+      <input name="name" value="{{ node.category.name }}" aria-label="نام {{ node.category.name }}">
+      <button type="submit">ویرایش</button>
+    </form>
+    <form method="post" action="{% url 'categories' %}">
+      {% csrf_token %}
+      <input type="hidden" name="form" value="category_delete">
+      <input type="hidden" name="id" value="{{ node.category.pk }}">
+      <button class="quiet" type="submit">حذف</button>
+    </form>
+  </div>
+  {% include "talent/seo_box.html" with obj=node.category form_name="category_seo" seo_id=node.category.pk %}
+  {% if node.children %}
+    <div class="subcat-admin">
+      {% for child in node.children %}
+        {% include "talent/category_branch.html" with node=child root=0 %}
+      {% endfor %}
+    </div>
+  {% endif %}
+</article>

@@ -1,0 +1,16 @@
+<div class="role-cat">
+  <label class="role-line">
+    <input type="checkbox" name="categories" value="{{ node.category.id }}" {% if node.checked %}checked{% endif %}>
+    <span>{{ node.category.name }}</span>
+    {% if node.status == "approved" %}<span class="badge ok">تایید شده</span>
+    {% elif node.status == "pending" %}<span class="badge wait">در انتظار تایید</span>
+    {% elif node.status == "rejected" %}<span class="badge bad">رد شده</span>{% endif %}
+  </label>
+  {% if node.children %}
+    <div class="role-kids">
+      {% for child in node.children %}
+        {% include "talent/specialty_node.html" with node=child %}
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

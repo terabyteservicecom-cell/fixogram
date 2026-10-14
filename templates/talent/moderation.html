@@ -1,0 +1,213 @@
+{% extends "talent/staff_base.html" %}
+{% load static %}
+{% block title %}صف تایید — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>صف تایید</h1>
+<p>عدد کنار «صف تایید» فقط همین صفحه است. تخصص‌های یک کاربر یک‌جا هستند و با «تایید همه» یکجا تایید می‌شوند. «جزئیات» هر تخصص را جدا نشان می‌دهد تا بتوانی همان یکی را تایید یا رد کنی. تیکت و تخلف در منوی جدا هستند.</p>
+
+{% if waiting %}
+<section class="panel" id="waiting">
+  <h2>{{ waiting|length }} مورد منتظر تایید</h2>
+  {% for item in waiting %}
+    <article class="block">
+      <p><span class="badge wait">{{ item.kind_label }}</span> {{ item.text }}</p>
+      {% if item.kind == "identity" %}<p><a href="{% url 'identity_file' item.id %}">دیدن فایل</a></p>{% endif %}
+      <form method="post" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="{{ item.kind }}">
+        <input type="hidden" name="id" value="{{ item.id }}">
+        {% if item.needs_reason %}
+          <label>اگر رد می‌کنی، دلیل را بنویس. کاربر همان را می‌بیند.
+            <textarea name="reason" rows="2" maxlength="500"></textarea>
+          </label>
+        {% endif %}
+        {% if item.needs_score %}
+          <label>امتیاز مدیریت، اگر می‌خواهی روی پروفایل بیاید
+            <input type="number" name="staff_score" min="1" max="5" inputmode="numeric" placeholder="۱ تا ۵">
+          </label>
+        {% endif %}
+        <button type="submit" name="action" value="approve">{{ item.approve_label }}</button>
+        {% if not item.group %}<button class="quiet" type="submit" name="action" value="reject">رد</button>{% endif %}
+      </form>
+      {% if item.group %}
+        {% include "talent/role_group_details.html" with group=item.group %}
+      {% endif %}
+    </article>
+  {% endfor %}
+</section>
+{% else %}
+<p class="muted">الان در صف تایید چیزی نمانده.</p>
+{% endif %}
+
+<section class="panel" id="new-user">
+  <h2>تعریف کاربر</h2>
+  <p class="muted">مدیر و پشتیبان می‌توانند خودشان حساب بسازند. حساب از همین‌جا تایید می‌شود و تخصص‌های انتخاب‌شده همان لحظه تاییدند. شخص بعداً با همین شماره و کد پیامکی وارد می‌شود و بقیهٔ مشخصات را کامل می‌کند.</p>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="kind" value="create-user">
+    {{ create_form.non_field_errors }}
+    {% for field in create_form %}
+      <p>
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </p>
+    {% endfor %}
+    <button type="submit">ساخت حساب</button>
+    <script src="{% static 'talent/pick.js' %}?v=2"></script>
+  </form>
+</section>
+
+<section class="panel" id="signups">
+  <h2>ثبت‌نام‌های در انتظار تایید</h2>
+  {% for profile in pending_signups %}
+    <article class="block">
+      <p>
+        <a href="{% url 'profile' profile.pk %}">{{ profile.display_name|default:"بدون نام" }}</a>
+        <span dir="ltr">{{ profile.phone }}</span>
+        {% if profile.recruited_by %} · ویزیتور: {{ profile.recruited_by.display_name }}{% endif %}
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="signup">
+        <input type="hidden" name="id" value="{{ profile.pk }}">
+        <label>دلیل رد
+          <textarea name="reason" rows="2" maxlength="500" placeholder="این متن را خود کاربر می‌بیند"></textarea>
+        </label>
+        <button type="submit" name="action" value="approve">تایید ثبت‌نام</button>
+        <button class="quiet" type="submit" name="action" value="reject">رد</button>
+      </form>
+    </article>
+  {% empty %}
+    <p class="muted">ثبت‌نام در انتظاری نیست.</p>
+  {% endfor %}
+</section>
+
+<section class="panel" id="identity">
+  <h2>ابراز هویت VIP</h2>
+  <p class="muted">کارت ملی، شناسنامه، جواز کسب و مدرک‌های دیگر. با تایید، کنار نام VIP می‌نشیند. امتیاز مدیریت جدا از رای مشتری‌هاست و اگر ۱ تا ۵ بنویسی روی پروفایل دیده می‌شود. خود فایل برای بقیه باز نیست.</p>
+  {% for document in pending_identity %}
+    <article class="block">
+      <p>
+        <a href="{% url 'profile' document.profile.pk %}">{{ document.profile.display_name|default:"بدون نام" }}</a>
+        · {{ document.label }}
+        {% if document.profile.is_vip %}<span class="vip">VIP</span>{% endif %}
+      </p>
+      <p><a href="{% url 'identity_file' document.pk %}">دیدن فایل</a></p>
+      <form method="post" class="identity-actions">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="identity">
+        <input type="hidden" name="id" value="{{ document.pk }}">
+        <label>امتیاز مدیریت
+          <input type="number" name="staff_score" min="1" max="5" inputmode="numeric" placeholder="۱ تا ۵">
+        </label>
+        <button type="submit" name="action" value="approve">تایید هویت</button>
+        <button class="quiet" type="submit" name="action" value="reject">رد مدرک</button>
+        {% if document.profile.is_vip %}
+          <button class="quiet" type="submit" name="action" value="revoke">برداشتن VIP</button>
+        {% endif %}
+      </form>
+    </article>
+  {% empty %}
+    <p class="muted">مدرک هویتی در انتظار نیست.</p>
+  {% endfor %}
+</section>
+
+<section class="panel" id="jobs">
+  <h2>آگهی‌های استخدام و نیاز به کار</h2>
+  {% for item in pending_jobs %}
+    <article class="block">
+      <p>
+        <span class="badge {% if item.kind == 'hire' %}ok{% else %}wait{% endif %}">{{ item.get_kind_display }}</span>
+        <strong>{{ item.title }}</strong>
+        — <a href="{% url 'profile' item.author.profile.pk %}">{{ item.author.profile.display_name }}</a>
+        {% if item.city %} · {{ item.city }}{% endif %}
+        {% if item.category %} · {{ item.category }}{% endif %}
+        · {{ item.get_duration_days_display }}
+        · {{ item.view_line }}
+        · <a href="{% url 'job_detail' item.pk %}">دیدن آگهی</a>
+      </p>
+      <p class="pre">{{ item.body }}</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="job">
+        <input type="hidden" name="id" value="{{ item.pk }}">
+        <button type="submit" name="action" value="approve">تایید آگهی</button>
+        <button class="quiet" type="submit" name="action" value="reject">رد</button>
+      </form>
+    </article>
+  {% empty %}
+    <p class="muted">آگهی در انتظاری نیست.</p>
+  {% endfor %}
+</section>
+
+<section class="panel" id="messages">
+  <h2>پیام‌های در انتظار تایید</h2>
+  {% for item in pending_messages %}
+    <article class="block">
+      <p><strong>{{ item.sender.profile.display_name }}</strong></p>
+      <p class="pre">{{ item.body }}</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="message">
+        <input type="hidden" name="id" value="{{ item.pk }}">
+        <button type="submit" name="action" value="approve">تایید پیام</button>
+        <button class="quiet" type="submit" name="action" value="reject">رد</button>
+      </form>
+    </article>
+  {% empty %}
+    <p class="muted">پیام در انتظاری نیست.</p>
+  {% endfor %}
+</section>
+
+<section class="panel" id="roles">
+  <h2>تخصص‌های در انتظار تایید</h2>
+  {% for group in role_groups %}
+    <article class="block">
+      <p>
+        <a href="{% url 'profile' group.profile.pk %}">{{ group.profile.display_name|default:"بدون نام" }}</a>
+        · {{ group.count }} تخصص: {{ group.names }}
+        {% if group.signup %}<span class="badge wait">ثبت‌نام هم منتظر است</span>{% endif %}
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="role-user">
+        <input type="hidden" name="id" value="{{ group.profile.pk }}">
+        <button type="submit" name="action" value="approve">تایید همه</button>
+      </form>
+      {% include "talent/role_group_details.html" with group=group %}
+    </article>
+  {% empty %}
+    <p class="muted">تخصص در انتظاری نیست.</p>
+  {% endfor %}
+</section>
+
+<section class="panel" id="phones">
+  <h2>درخواست دیدن شماره</h2>
+  {% for item in pending_phones %}
+    <article class="block">
+      <p>
+        <a href="{% url 'profile' item.requester.profile.pk %}">{{ item.requester.profile.display_name }}</a>
+        شماره
+        <a href="{% url 'profile' item.profile.pk %}">{{ item.profile.display_name }}</a>
+        را می‌خواهد.
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="phone">
+        <input type="hidden" name="id" value="{{ item.pk }}">
+        <button type="submit" name="action" value="approve">باز کردن شماره</button>
+        <button class="quiet" type="submit" name="action" value="reject">رد</button>
+      </form>
+    </article>
+  {% empty %}
+    <p class="muted">درخواست شماره‌ای نیست.</p>
+  {% endfor %}
+</section>
+
+<section class="panel" id="accounts">
+  <h2>کاربران</h2>
+  <p class="muted">جستجو، غیرفعال‌سازی و حذف حساب‌ها در فهرست کاربران است. حساب مدیر از آنجا پاک نمی‌شود.</p>
+  <p><a class="button" href="{% url 'system_users' %}">فهرست کاربران</a></p>
+</section>
+{% endblock %}

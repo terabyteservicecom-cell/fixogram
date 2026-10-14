@@ -1,0 +1,29 @@
+<p>
+  <label for="role-filter">جستجوی تخصص</label>
+  <input id="role-filter" type="search" placeholder="مثلاً لپ‌تاپ یا برد">
+</p>
+<div class="role-board">
+  {% for node in specialty_tree %}
+    {% include "talent/specialty_node.html" with node=node %}
+  {% empty %}
+    <p>هنوز تخصصی در سیستم نیست.</p>
+  {% endfor %}
+</div>
+<script>
+  (function () {
+    var box = document.getElementById("role-filter");
+    if (!box) return;
+    box.addEventListener("input", function () {
+      var query = box.value.trim();
+      document.querySelectorAll(".role-board .role-cat").forEach(function (group) {
+        var visible = false;
+        group.querySelectorAll(".role-line").forEach(function (line) {
+          var show = !query || line.textContent.indexOf(query) !== -1;
+          line.hidden = !show;
+          if (show) visible = true;
+        });
+        group.hidden = !visible;
+      });
+    });
+  })();
+</script>

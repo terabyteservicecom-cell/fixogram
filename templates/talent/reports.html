@@ -1,0 +1,57 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}گزارشات — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>گزارشات</h1>
+<p>بازدید سایت، افراد آنلاین و کلیک بنرهای تبلیغ اینجاست. آنلاین یعنی در {{ online_minutes }} دقیقه اخیر صفحه‌ای باز شده باشد.</p>
+
+<div class="stat-grid">
+  <a class="stat has" href="{% url 'visit_report' %}?range=today">
+    <strong>{{ online_count }}</strong>
+    <span>نفر آنلاین</span>
+  </a>
+  <a class="stat" href="{% url 'visit_report' %}?range=today">
+    <strong>{{ views_today }}</strong>
+    <span>بازدید امروز</span>
+  </a>
+  <a class="stat" href="{% url 'visit_report' %}?range=today">
+    <strong>{{ people_today }}</strong>
+    <span>نفر یکتا امروز</span>
+  </a>
+  <a class="stat" href="{% url 'banner_report' %}">
+    <strong>بنرها</strong>
+    <span>گزارش کلیک تبلیغ</span>
+  </a>
+  {% if user.is_superuser %}
+  <a class="stat" href="{% url 'support_report' %}">
+    <strong>پشتیبان</strong>
+    <span>لاگ و کارکرد پشتیبان‌ها</span>
+  </a>
+  {% endif %}
+</div>
+
+<section class="panel">
+  <h2>افراد آنلاین</h2>
+  {% if online %}
+    <table class="report">
+      <thead>
+        <tr>
+          <th>نام</th>
+          <th>صفحه</th>
+          <th>آخرین فعالیت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for person in online %}
+          <tr>
+            <td>{{ person.name }}</td>
+            <td>{{ person.page }}</td>
+            <td>{{ person.when }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">الان کسی در سایت نیست.</p>
+  {% endif %}
+</section>
+{% endblock %}

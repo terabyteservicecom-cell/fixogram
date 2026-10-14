@@ -1,0 +1,35 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}دسته‌ها — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>دسته‌ها و زیرمجموعه‌ها</h1>
+<p>دسته جدید یک بخش اصلی است. اگر باید زیر دسته دیگری باشد، از زیرمجموعه استفاده کن. نام هر دسته را همین‌جا عوض یا حذف کن.</p>
+
+<section class="panel">
+  <h2>درخت فعلی</h2>
+  <div class="cat-tree">
+    {% for node in tree %}
+      {% include "talent/category_branch.html" with node=node root=1 %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>دسته جدید</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="new_category">
+    {{ new_category_form.as_p }}
+    <button type="submit">ساختن دسته</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>زیرمجموعه جدید</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="category">
+    {{ subcategory_form.as_p }}
+    <button type="submit">ساختن زیرمجموعه</button>
+  </form>
+</section>
+{% endblock %}

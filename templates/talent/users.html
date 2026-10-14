@@ -1,0 +1,284 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}کاربران — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>کاربران</h1>
+<p class="muted">{{ user_total }} کاربر در سیستم. کارت‌ها با جستجو یا فیلتر می‌آیند؛ فهرست یکجا باز نمی‌شود.</p>
+
+<section class="panel">
+  <form method="get" class="visitor-search user-filters">
+    <label>
+      جستجو
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="نام، نام مجموعه، شماره، شهر" autocomplete="off">
+    </label>
+    <label>
+      ابراز هویت
+      <select name="identity">
+        <option value="">همه</option>
+        <option value="yes" {% if filters.identity == "yes" %}selected{% endif %}>ابراز هویت شده</option>
+        <option value="no" {% if filters.identity == "no" %}selected{% endif %}>ابراز هویت نشده</option>
+      </select>
+    </label>
+    <label>
+      شهر
+      <select name="city">
+        <option value="">همه شهرها</option>
+        {% for name in filter_cities %}
+          <option value="{{ name }}" {% if filters.city == name %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      تخلف
+      <select name="violation">
+        <option value="">همه</option>
+        <option value="yes" {% if filters.violation == "yes" %}selected{% endif %}>تخلف‌دارها</option>
+      </select>
+    </label>
+    <label>
+      امتیاز
+      <select name="score">
+        <option value="">همه</option>
+        <option value="5" {% if filters.score == "5" %}selected{% endif %}>۵</option>
+        <option value="4" {% if filters.score == "4" %}selected{% endif %}>۴</option>
+        <option value="3" {% if filters.score == "3" %}selected{% endif %}>۳</option>
+        <option value="2" {% if filters.score == "2" %}selected{% endif %}>۲</option>
+        <option value="1" {% if filters.score == "1" %}selected{% endif %}>۱</option>
+        <option value="0" {% if filters.score == "0" %}selected{% endif %}>بدون امتیاز</option>
+      </select>
+    </label>
+    <label>
+      از تاریخ
+      <span class="jalali-field">
+        <input type="text" data-jalali name="start" value="{{ filters.start }}" placeholder="۱۴۰۵/۰۷/۱۳" inputmode="numeric" autocomplete="off">
+        <button type="button" class="jalali-open" aria-label="تقویم شمسی">تقویم</button>
+      </span>
+    </label>
+    <label>
+      تا تاریخ
+      <span class="jalali-field">
+        <input type="text" data-jalali name="end" value="{{ filters.end }}" placeholder="۱۴۰۵/۰۷/۱۳" inputmode="numeric" autocomplete="off">
+        <button type="button" class="jalali-open" aria-label="تقویم شمسی">تقویم</button>
+      </span>
+    </label>
+    <button type="submit">جستجو</button>
+  </form>
+  {% if page is not None %}
+  <p class="muted">{{ page.paginator.count }} از {{ user_total }} کاربر</p>
+  {% endif %}
+  {% if page is not None and page.object_list %}
+    <div class="visitor-grid user-grid">
+      {% for account in page.object_list %}
+        <article class="visitor-card">
+          <p>
+            <strong>
+              <a href="{% url 'profile' account.pk %}">{{ account.display_name|default:"بدون نام" }}</a>
+            </strong>
+          </p>
+          {% if account.business_name %}<p>{{ account.business_name }}</p>{% endif %}
+          <p>
+            {% if account.city %}{{ account.city }}{% else %}شهر ثبت نشده{% endif %}
+            {% if account.province %} · {{ account.province }}{% endif %}
+            · شماره تماس
+            {% if account.contact_phone %}<span dir="ltr">{{ account.contact_phone }}</span>{% else %}ثبت نشده{% endif %}
+          </p>
+          {% include "talent/social_links.html" with profile=account %}
+          <p>
+            {% if not account.user.is_active %}<span class="badge wait">غیرفعال</span>{% endif %}
+            {% if account.archived_at %}<span class="badge wait">بایگانی</span>{% endif %}
+            {% if account.is_visitor %}<span class="badge">ویزیتور</span>{% endif %}
+            {% if account.account_status == "pending" %}<span class="badge wait">در انتظار</span>{% endif %}
+            {% if account.account_status == "rejected" %}<span class="badge wait">رد شده</span>{% endif %}
+            <span class="badge {% if account.seo_score >= 80 %}ok{% elif account.seo_score >= 50 %}wait{% else %}bad{% endif %}">سئو {{ account.seo_score }}</span>
+            {% if account.seo_errors %}<span class="badge bad">{{ account.seo_errors|length }} خطا</span>{% endif %}
+            {% if account.rejection_note %}<span class="muted">دلیل رد: {{ account.rejection_note }}</span>{% endif %}
+          </p>
+          <div class="user-block">
+            <p class="muted">توضیحات</p>
+            {% if account.about_business %}<p>{{ account.about_business|truncatechars:180 }}</p>{% endif %}
+            {% if account.bio %}<p>{{ account.bio|truncatechars:180 }}</p>{% endif %}
+            {% if not account.about_business and not account.bio %}<p class="muted">توضیحی ثبت نشده.</p>{% endif %}
+          </div>
+          <div class="user-block">
+            <p class="muted">گردش مالی</p>
+            <p>موجودی {{ account.money_label }} تومان</p>
+            {% for row in account.money_rows %}
+              <p class="muted">{{ row.when }} · {{ row.get_kind_display }} · {{ row.amount_label }}</p>
+            {% empty %}
+              <p class="muted">هنوز گردشی ثبت نشده.</p>
+            {% endfor %}
+          </div>
+          <div class="visitor-actions">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="account">
+              <input type="hidden" name="id" value="{{ account.pk }}">
+              {% include "talent/user_filter_hiddens.html" %}
+              {% if account.user.is_active %}
+                <button class="quiet" type="submit" name="action" value="deactivate">غیرفعال</button>
+              {% else %}
+                <button type="submit" name="action" value="activate">فعال</button>
+              {% endif %}
+            </form>
+            <form method="post" onsubmit="return confirm('این حساب برای همیشه پاک شود؟');">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="account">
+              <input type="hidden" name="id" value="{{ account.pk }}">
+              {% include "talent/user_filter_hiddens.html" %}
+              <button class="quiet" type="submit" name="action" value="delete">حذف</button>
+            </form>
+          </div>
+          <details>
+            <summary>ویرایش کارتابل</summary>
+            <form method="post" class="stack">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="edit-profile">
+              <input type="hidden" name="id" value="{{ account.pk }}">
+              {% include "talent/user_filter_hiddens.html" %}
+              <p>
+                <label for="name-{{ account.pk }}">نام</label>
+                <input id="name-{{ account.pk }}" name="display_name" maxlength="80" required value="{{ account.display_name }}">
+              </p>
+              <p>
+                <label for="business-{{ account.pk }}">نام مجموعه</label>
+                <input id="business-{{ account.pk }}" name="business_name" maxlength="120" value="{{ account.business_name }}">
+              </p>
+              <p>
+                <label for="headline-{{ account.pk }}">یک خط معرفی</label>
+                <input id="headline-{{ account.pk }}" name="headline" maxlength="140" value="{{ account.headline }}">
+              </p>
+              <p>
+                <label for="province-{{ account.pk }}">استان</label>
+                <select id="province-{{ account.pk }}" name="province">
+                  {% for value, label in province_options %}
+                    <option value="{{ value }}" {% if value == account.province %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </p>
+              <p>
+                <label for="city-{{ account.pk }}">شهر</label>
+                <select id="city-{{ account.pk }}" name="city">
+                  {% for value, label in city_options %}
+                    <option value="{{ value }}" {% if value == account.city %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </p>
+              <p>
+                <label for="address-{{ account.pk }}">آدرس</label>
+                <input id="address-{{ account.pk }}" name="address" maxlength="240" value="{{ account.address }}">
+              </p>
+              <p>
+                <label for="contact-{{ account.pk }}">شماره‌ای که به کاربران نمایش داده می‌شود</label>
+                <input id="contact-{{ account.pk }}" name="contact_phone" value="{{ account.contact_phone }}" inputmode="tel" dir="ltr" maxlength="20">
+              </p>
+              <p>
+                <label for="bio-{{ account.pk }}">معرفی</label>
+                <textarea id="bio-{{ account.pk }}" name="bio" rows="3">{{ account.bio }}</textarea>
+              </p>
+              <p>
+                <label for="about-{{ account.pk }}">معرفی مجموعه</label>
+                <textarea id="about-{{ account.pk }}" name="about_business" rows="3">{{ account.about_business }}</textarea>
+              </p>
+              <p>
+                <label for="instagram-{{ account.pk }}">اینستاگرام</label>
+                <input id="instagram-{{ account.pk }}" name="instagram" maxlength="200" value="{{ account.instagram }}" dir="ltr">
+              </p>
+              <p>
+                <label for="telegram-{{ account.pk }}">تلگرام</label>
+                <input id="telegram-{{ account.pk }}" name="telegram" maxlength="200" value="{{ account.telegram }}" dir="ltr">
+              </p>
+              <p>
+                <label for="whatsapp-{{ account.pk }}">واتساپ</label>
+                <input id="whatsapp-{{ account.pk }}" name="whatsapp" maxlength="200" value="{{ account.whatsapp }}" dir="ltr">
+              </p>
+              <p>
+                <label for="website-{{ account.pk }}">وب‌سایت</label>
+                <input id="website-{{ account.pk }}" name="website" maxlength="200" value="{{ account.website }}" dir="ltr">
+              </p>
+              <button type="submit">ذخیره کارتابل</button>
+            </form>
+          </details>
+          <details>
+            <summary>سئو گوگل · {{ account.seo_score }} از ۱۰۰{% if account.seo_errors %} · {{ account.seo_errors|length }} خطا{% elif account.seo_notes %} · {{ account.seo_notes|length }} کمبود{% endif %}</summary>
+            <p class="helptext">عنوان، لینک آبی گوگل است و توضیح، متن خاکستری زیر آن. اگر خالی بماند، سایت از نام، معرفی، تخصص و شهر می‌سازد. شماره تلفن را در این متن‌ها ننویس.</p>
+            <p><strong>امتیاز سئو: {{ account.seo_score }} از ۱۰۰</strong></p>
+            {% if account.seo_errors %}
+              <p class="muted">خطاها</p>
+              <ul class="seo-list bad">
+                {% for item in account.seo_errors %}<li>{{ item }}</li>{% endfor %}
+              </ul>
+            {% else %}
+              <p class="helptext">خطایی که جلوی گوگل را بگیرد نیست.</p>
+            {% endif %}
+            {% if account.seo_notes %}
+              <p class="muted">کمبودها</p>
+              <ul class="seo-list">
+                {% for item in account.seo_notes %}<li>{{ item }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+            <form method="post" class="stack">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="seo">
+              <input type="hidden" name="id" value="{{ account.pk }}">
+              {% include "talent/user_filter_hiddens.html" %}
+              <p>
+                <label for="seo-title-{{ account.pk }}">عنوان</label>
+                <input id="seo-title-{{ account.pk }}" name="seo_title" value="{{ account.seo_title }}" maxlength="70">
+                <span class="helptext">حدود ۵۰ تا ۶۰ حرف. نام، کار و شهر را بیاور. نمونه: تعمیر لپ‌تاپ در تهران | {{ account.display_name|default:"نام" }}</span>
+              </p>
+              <p>
+                <label for="seo-text-{{ account.pk }}">توضیح</label>
+                <textarea id="seo-text-{{ account.pk }}" name="seo_description" rows="3" maxlength="170">{{ account.seo_description }}</textarea>
+                <span class="helptext">حدود ۱۲۰ تا ۱۶۰ حرف. یک جمله که بگوید چه تعمیر یا آموزشی انجام می‌دهد و در کدام شهر.</span>
+              </p>
+              <button type="submit">ذخیره سئو</button>
+            </form>
+          </details>
+          <details>
+            <summary>شماره تماس و بایگانی</summary>
+            <p>شماره‌ای که به کاربران نمایش داده می‌شود:
+              {% if account.contact_phone %}<strong dir="ltr">{{ account.contact_phone }}</strong>{% else %}ثبت نشده{% endif %}
+            </p>
+            <form method="post" class="stack">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="phone_edit">
+              <input type="hidden" name="id" value="{{ account.pk }}">
+              {% include "talent/user_filter_hiddens.html" %}
+              <p>
+                <label for="phone-{{ account.pk }}">شماره ورود</label>
+                <input id="phone-{{ account.pk }}" name="phone" value="{{ account.phone }}" inputmode="tel" dir="ltr" maxlength="11">
+              </p>
+              <button type="submit">عوض کردن شماره</button>
+            </form>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="account">
+              <input type="hidden" name="id" value="{{ account.pk }}">
+              {% include "talent/user_filter_hiddens.html" %}
+              {% if account.archived_at %}
+                <button type="submit" name="action" value="restore">برگرداندن از بایگانی</button>
+              {% else %}
+                <button class="quiet" type="submit" name="action" value="archive">بایگانی</button>
+              {% endif %}
+            </form>
+          </details>
+        </article>
+      {% endfor %}
+    </div>
+    {% if page.has_other_pages %}
+      <p class="pager">
+        {% if page.has_previous %}
+          <a href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page.previous_page_number }}">قبلی</a>
+        {% endif %}
+        <span>صفحه {{ page.number }}</span>
+        {% if page.has_next %}
+          <a href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page.next_page_number }}">بعدی</a>
+        {% endif %}
+      </p>
+    {% endif %}
+  {% elif page is not None %}
+    <p class="empty">با این جستجو یا فیلتر کاربری پیدا نشد.</p>
+  {% else %}
+    <p class="empty">نام، نام مجموعه، شماره یا شهر را جستجو کن، یا یک فیلتر را انتخاب کن تا کارت‌ها بیایند.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,217 @@
+{% extends "talent/base.html" %}
+{% load static %}
+{% block title %}پذیرش ویزیتور — فیکسوگرام{% endblock %}
+{% block content %}
+<h1>پذیرش</h1>
+<p>همان اطلاعاتی را پر کن که خود کاربر باید پر کند: نام، شماره، عکس، آدرس، موقعیت، شبکه‌ها و تخصص. شمارهٔ تکراری یا حساب قبلی قبول نمی‌شود. تا تایید مدیر در جستجو دیده نمی‌شود.</p>
+
+<div class="stat-grid">
+  <div class="stat has">
+    <strong>{{ today_count }}</strong>
+    <span>کار امروز</span>
+  </div>
+  <div class="stat{% if counts.total %} has{% endif %}">
+    <strong>{{ counts.total }}</strong>
+    <span>کل پذیرش</span>
+  </div>
+  <div class="stat{% if counts.pending %} has{% endif %}">
+    <strong>{{ counts.pending }}</strong>
+    <span>منتظر تایید</span>
+  </div>
+  <div class="stat">
+    <strong>{{ counts.approved }}</strong>
+    <span>تایید شده</span>
+  </div>
+  <div class="stat">
+    <strong>{{ counts.rejected }}</strong>
+    <span>رد شده</span>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>کار هر روز</h2>
+  <p class="muted">روی هر روز بزن تا کارها باز شود. نام پروفایل همان کسی است که ثبت کرده‌ای. برای هر کدام می‌توانی فایل بگذاری.</p>
+  {% if daily %}
+    {% for row in daily %}
+      <details class="day-work">
+        <summary><span>{{ row.label }}</span><strong>{{ row.count }} کار</strong></summary>
+        <div class="day-list">
+          {% for person in row.people %}
+            <article class="day-person">
+              <p>
+                <strong>{{ person.display_name|default:"بدون نام" }}</strong>
+                · <span dir="ltr">{{ person.phone }}</span>
+                · {{ person.get_account_status_display }}
+              </p>
+              {% if person.visit_file %}
+                <p><a href="{% url 'visit_file' person.pk %}">دیدن فایل</a></p>
+              {% endif %}
+              <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="kind" value="visit-file">
+                <input type="hidden" name="id" value="{{ person.pk }}">
+                <input type="file" name="file" accept=".jpg,.jpeg,.png,.webp,.pdf" required>
+                <button type="submit">ثبت فایل</button>
+              </form>
+            </article>
+          {% endfor %}
+        </div>
+      </details>
+    {% endfor %}
+  {% else %}
+    <p class="muted">هنوز پذیرشی ثبت نشده.</p>
+  {% endif %}
+</section>
+
+<section class="panel" id="new-recruit">
+  <h2>کاربر تازه</h2>
+  <form method="post" enctype="multipart/form-data" class="fields" id="profile-form">
+    {% csrf_token %}
+    {% include "talent/map_assets.html" %}
+    {{ form.non_field_errors }}
+    <p>
+      {{ form.display_name.label_tag }}
+      {{ form.display_name }}
+      {{ form.display_name.errors }}
+    </p>
+    <p>
+      {{ form.phone.label_tag }}
+      {{ form.phone }}
+      {{ form.phone.errors }}
+    </p>
+    <p>
+      {{ form.contact_phone.label_tag }}
+      {{ form.contact_phone }}
+      {{ form.contact_phone.errors }}
+      {% if form.contact_phone.help_text %}<span class="helptext">{{ form.contact_phone.help_text }}</span>{% endif %}
+    </p>
+    <p>
+      {{ form.avatar.label_tag }}
+      {{ form.avatar }}
+      {{ form.avatar.errors }}
+    </p>
+    <p>
+      {{ form.business_name.label_tag }}
+      {{ form.business_name }}
+      {{ form.business_name.errors }}
+    </p>
+    <p>
+      {{ form.headline.label_tag }}
+      {{ form.headline }}
+      {{ form.headline.errors }}
+    </p>
+    <details class="fold" open>
+      <summary>محل و آدرس</summary>
+      <p>
+        {{ form.province.label_tag }}
+        {{ form.province }}
+        {{ form.province.errors }}
+      </p>
+      <p>
+        {{ form.city.label_tag }}
+        {{ form.city }}
+        {{ form.city.errors }}
+      </p>
+      <p>
+        {{ form.address.label_tag }}
+        {{ form.address }}
+        {{ form.address.errors }}
+      </p>
+      {{ form.latitude }}
+      {{ form.longitude }}
+      {% include "talent/location_picker.html" with picker_id="profile" lat_id="profile_latitude" lng_id="profile_longitude" title="ثبت موقعیت" hint="موقعیت را باز کن یا روی نقشه بزن، بعد تایید کن." save=0 %}
+    </details>
+    <details class="fold" open>
+      <summary>معرفی</summary>
+      <p>
+        {{ form.bio.label_tag }}
+        {{ form.bio }}
+        {{ form.bio.errors }}
+      </p>
+      <p>
+        {{ form.about_business.label_tag }}
+        {{ form.about_business }}
+        {{ form.about_business.errors }}
+      </p>
+    </details>
+    <details class="fold" open>
+      <summary>شبکه‌ها</summary>
+      <p>
+        {{ form.instagram.label_tag }}
+        {{ form.instagram }}
+        {{ form.instagram.errors }}
+      </p>
+      <p>
+        {{ form.telegram.label_tag }}
+        {{ form.telegram }}
+        {{ form.telegram.errors }}
+      </p>
+      <p>
+        {{ form.whatsapp.label_tag }}
+        {{ form.whatsapp }}
+        {{ form.whatsapp.errors }}
+      </p>
+      <p>
+        {{ form.website.label_tag }}
+        {{ form.website }}
+        {{ form.website.errors }}
+      </p>
+      <p>
+        {{ form.username.label_tag }}
+        {{ form.username }}
+        {{ form.username.errors }}
+        {% if form.username.help_text %}<span class="helptext">{{ form.username.help_text }}</span>{% endif %}
+      </p>
+    </details>
+    <details class="fold" open>
+      <summary>تخصص</summary>
+      <p class="muted">تخصص اصلی و زیرمجموعه‌ها را جدا تیک بزن. چند تا را می‌توانی با هم انتخاب کنی.</p>
+      {% include "talent/specialty_board.html" %}
+    </details>
+    <button type="submit">ثبت کاربر</button>
+  </form>
+  <script src="{% static 'talent/pick.js' %}?v=2"></script>
+</section>
+
+<section class="panel">
+  <h2>پذیرش‌های تو</h2>
+  {% if recruits %}
+    <table class="report">
+      <thead>
+        <tr>
+          <th>نام</th>
+          <th>شماره</th>
+          <th>وضعیت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in recruits %}
+          <tr>
+            <td>{{ row.display_name }}</td>
+            <td dir="ltr">{{ row.phone }}</td>
+            <td>{{ row.get_account_status_display }}{% if row.settlement_id %} · تسویه شد{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">هنوز کاربری ثبت نکرده‌ای.</p>
+  {% endif %}
+</section>
+
+<section class="panel" id="settlements">
+  <h2>کارتابل تسویه</h2>
+  {% if settlements %}
+    {% for item in settlements %}
+      <article class="block">
+        <p><strong>تسویه شد</strong> · {{ item.recruit_count }} پذیرش تاییدشده</p>
+        {% if item.amount %}<p>مبلغ: {{ item.amount }}</p>{% endif %}
+        {% if item.note %}<p>{{ item.note }}</p>{% endif %}
+        <p class="muted">{{ item.when }}</p>
+      </article>
+    {% endfor %}
+  {% else %}
+    <p class="muted">هنوز تسویه‌ای ثبت نشده.</p>
+  {% endif %}
+</section>
+{% endblock %}

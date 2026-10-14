@@ -1,0 +1,22 @@
+{% extends "talent/base.html" %}
+{% block title %}گفتگو با {{ other.profile.display_name }} — فیکسوگرام{% endblock %}
+{% block content %}
+<p><a href="{% url 'inbox' %}">بازگشت به پیام‌ها</a></p>
+<h1>گفتگو با <a href="{% url 'profile' other.profile.pk %}">{{ other.profile.display_name }}</a></h1>
+<p class="muted">هر پیام تا تایید مدیر یا پشتیبان به طرف مقابل نمی‌رسد.</p>
+<div class="talk">
+  {% for item in messages_list %}
+    <p class="{% if item.sender_id == user.id %}mine{% else %}theirs{% endif %}">
+      {{ item.body }}
+      {% if item.status == "pending" %}<span class="badge wait">در انتظار تایید</span>{% elif item.status == "rejected" %}<span class="badge bad">رد شده</span>{% endif %}
+    </p>
+  {% empty %}
+    <p class="muted">اولین پیام را بنویس.</p>
+  {% endfor %}
+</div>
+<form method="post" class="stack">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">ارسال</button>
+</form>
+{% endblock %}

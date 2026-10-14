@@ -1,0 +1,89 @@
+{% extends "talent/base.html" %}
+{% load talent_tags %}
+{% block title %}{{ post.title }} — بلاگ فیکسوگرام{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="مسیر">
+  <a href="{% url 'home' %}">فیکسوگرام</a>
+  <a href="{% url 'blog' %}">بلاگ</a>
+  <a href="{% url 'blog' %}?category={{ post.category.pk }}">{{ post.category.name }}</a>
+  <span>{{ post.title }}</span>
+</nav>
+<article class="sheet">
+  <h1>{{ post.title }}</h1>
+  {% url 'blog_detail' post.pk as share_path %}
+  {% include "talent/share_save.html" with kind="post" object_id=post.pk saved=item_saved share_path=share_path title=post.title %}
+  <p class="muted">
+    {{ post.created_at|jalali }}
+    {% if post.author %} · {{ post.author.profile.display_name }}{% endif %}
+    {% if not post.is_published %}<span class="badge wait">پیش‌نویس</span>{% endif %}
+  </p>
+  {% if user.is_staff %}
+    <p><a href="{% url 'blog_edit' post.pk %}">ویرایش</a></p>
+  {% endif %}
+  <div class="prose">{{ post.body|rich }}</div>
+</article>
+
+{% if banners %}
+  <div class="banner-pair" aria-label="تبلیغات بلاگ">
+    {% for banner in banners %}
+      <a href="{% url 'banner_go' banner.pk %}" target="_blank" rel="noopener noreferrer">
+        <img src="{{ banner.image.url }}" alt="{{ banner.title|default:'تبلیغ' }}">
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<section id="comments">
+  <h2>امتیاز و نظر</h2>
+  {% if scored_count %}
+    <p class="muted">میانگین {{ average|floatformat:1 }} از ۵، از {{ scored_count }} امتیاز{% if comment_count != scored_count %} · {{ comment_count }} نظر{% endif %}</p>
+  {% elif comment_count %}
+    <p class="muted">{{ comment_count }} نظر</p>
+  {% endif %}
+  {% if user.is_authenticated %}
+    <form method="post" action="{% url 'blog_comment' post.pk %}" class="review-compose">
+      {% csrf_token %}
+      <div class="stars-input">
+        <span class="review-label">امتیاز</span>
+        {{ comment_form.score }}
+      </div>
+      <label class="review-note">نظر
+        {{ comment_form.body }}
+      </label>
+      <button type="submit">{% if my_comment %}ویرایش نظر{% else %}ثبت نظر{% endif %}</button>
+    </form>
+  {% else %}
+    <p class="muted">برای امتیاز یا نظر <a href="{% url 'login' %}">وارد شو</a>.</p>
+  {% endif %}
+  <div class="review-list">
+    {% for comment in comments %}
+      <article class="review-card">
+        <strong>{{ comment.author.profile.display_name }}</strong>
+        {% if comment.score %}<span class="score">★ {{ comment.score }}</span>{% endif %}
+        {% if comment.body %}<p>{{ comment.body }}</p>{% endif %}
+        {% if user.is_authenticated and user.id == comment.author_id or user.is_staff %}
+          <form method="post" action="{% url 'delete_blog_comment' comment.pk %}">
+            {% csrf_token %}
+            <button class="quiet" type="submit">حذف</button>
+          </form>
+        {% endif %}
+      </article>
+    {% empty %}
+      <p class="muted">هنوز نظری ثبت نشده.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{% if more %}
+  <section>
+    <h2>نوشته‌های دیگر این دسته</h2>
+    <div class="post-list">
+      {% for item in more %}
+        <a class="card" href="{% url 'blog_detail' item.pk %}">
+          <strong>{{ item.title }}</strong>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+{% endblock %}

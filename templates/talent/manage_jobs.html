@@ -1,0 +1,57 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}استخدام و آماده به کار — پنل{% endblock %}
+{% block desk %}
+<h1>استخدام و آماده به کار</h1>
+<p class="muted">آگهی‌های استخدام و آگهی‌های آماده به کار اینجاست. می‌توانی متن را ویرایش کنی یا آگهی را حذف کنی.</p>
+
+<p class="filters">
+  <a href="{% url 'manage_jobs' %}" {% if not kind %}class="active"{% endif %}>همه</a>
+  <a href="?kind=hire" {% if kind == "hire" %}class="active"{% endif %}>استخدام ({{ hire_count }})</a>
+  <a href="?kind=seek" {% if kind == "seek" %}class="active"{% endif %}>آماده به کار ({{ seek_count }})</a>
+</p>
+
+{% if edit_form %}
+<section class="panel" id="job-edit">
+  <h2>ویرایش آگهی</h2>
+  <p class="muted">{{ edit_post.title }} — {{ edit_post.get_status_display }}</p>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save">
+    <input type="hidden" name="id" value="{{ edit_post.pk }}">
+    {{ edit_form.as_p }}
+    <button type="submit">ذخیره ویرایش</button>
+    <a href="{% url 'manage_jobs' %}{% if kind %}?kind={{ kind }}{% endif %}">انصراف</a>
+  </form>
+</section>
+{% endif %}
+
+{% for post in posts %}
+  <article class="block">
+    <p>
+      <span class="badge {% if post.kind == 'hire' %}ok{% else %}wait{% endif %}">{% if post.kind == 'hire' %}استخدام{% else %}آماده به کار{% endif %}</span>
+      <strong>{{ post.title }}</strong>
+      <span class="badge {% if post.status == 'approved' %}ok{% elif post.status == 'rejected' %}bad{% else %}wait{% endif %}">{{ post.get_status_display }}</span>
+    </p>
+    <p>
+      <a href="{% url 'profile' post.author.profile.pk %}">{{ post.author.profile.display_name|default:"بدون نام" }}</a>
+      {% if post.city %} · {{ post.city }}{% endif %}
+      {% if post.category %} · {{ post.category }}{% endif %}
+      · {{ post.stay_line }}
+      {% if post.show_views %} · {{ post.view_line }}{% endif %}
+    </p>
+    <p class="pre">{{ post.body }}</p>
+    <p>
+      <a href="{% url 'job_detail' post.pk %}">دیدن آگهی</a>
+      · <a href="?edit={{ post.pk }}{% if kind %}&amp;kind={{ kind }}{% endif %}">ویرایش</a>
+    </p>
+    <form method="post" onsubmit="return confirm('این آگهی حذف شود؟');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="id" value="{{ post.pk }}">
+      <button class="quiet" type="submit">حذف</button>
+    </form>
+  </article>
+{% empty %}
+  <p class="empty">آگهی‌ای در این فهرست نیست.</p>
+{% endfor %}
+{% endblock %}

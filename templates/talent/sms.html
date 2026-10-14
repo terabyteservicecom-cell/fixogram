@@ -1,0 +1,21 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}پیامک ورود — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>پیامک ورود</h1>
+<p>ورود کاربران با کد ۴ رقمی یک‌بارمصرف است و رمز ثابت وجود ندارد. پیامک طوری فرستاده می‌شود که با زدن Allow، خود گوشی کد را در مربع‌ها بگذارد.</p>
+<section class="panel">
+  <p>اگر ارسال مستقیم ممکن نباشد، از قالب اعتبارسنجی استفاده می‌شود. متن قالب باید <strong dir="ltr">%token</strong> داشته باشد و خط آخرش دامنه سایت و همان کد باشد:</p>
+  <p dir="ltr">کد ورود فیکسوگرام: %token<br>@85.198.54.48 #%token</p>
+  <p>بعد نام همان قالب و کلید API را اینجا ذخیره کن. اگر کلید از قبل باشد، برای عوض نکردنش کادر کلید را خالی بگذار.</p>
+  {% if masked_key %}
+    <p>کلید ذخیره‌شده: <strong dir="ltr">{{ masked_key }}</strong>{% if template_name %} — قالب <strong dir="ltr">{{ template_name }}</strong>{% endif %}</p>
+  {% else %}
+    <p>هنوز کلیدی ذخیره نشده و کد ورود ارسال نمی‌شود.</p>
+  {% endif %}
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">ذخیره تنظیم پیامک</button>
+  </form>
+</section>
+{% endblock %}

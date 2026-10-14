@@ -1,0 +1,99 @@
+{% extends "talent/base.html" %}
+{% load static %}
+{% block title %}{{ section.name }} — فیکسوگرام{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="مسیر">
+  <a href="{% url 'home' %}">فیکسوگرام</a>
+  {% if section.parent %}<a href="{% url 'section' section.parent.slug %}">{{ section.parent.name }}</a>{% endif %}
+  <span>{{ section.name }}</span>
+</nav>
+<h1>{{ section.name }}</h1>
+{% url 'section' section.slug as share_path %}
+{% include "talent/share_save.html" with kind="section" object_id=section.pk saved=item_saved share_path=share_path title=section.name %}
+<p class="muted">متخصص‌های تاییدشده این بخش و زیرمجموعه‌هایش. دو بنر کوچک تبلیغ همین‌جا، جدا از سه بنر چرخشی صفحه اول است.</p>
+{% if section.children.all %}
+  <section class="subcat-block" aria-label="زیرمجموعه‌ها">
+    <h2>زیرمجموعه‌ها</h2>
+    <div class="subcats">
+      {% for child in section.children.all %}
+        <a href="{% url 'section' child.slug %}">{{ child.name }}</a>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+{% if banners %}
+  <div class="banner-pair" aria-label="تبلیغات {{ section.name }}">
+    {% for banner in banners %}
+      <a href="{% url 'banner_go' banner.pk %}" target="_blank" rel="noopener noreferrer">
+        <img src="{{ banner.image.url }}" alt="{{ banner.title|default:'تبلیغ' }}">
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+<form class="search" id="section-filter" method="get">
+  <label>نام
+    <input type="search" name="q" value="{{ request.GET.q }}" placeholder="نام شخص یا مجموعه">
+  </label>
+  <label>استان
+    <select name="city" id="section-province">
+      <option value="">همه</option>
+      {% for name in provinces %}
+        <option value="{{ name }}" {% if request.GET.city == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>شهر
+    <select name="town" id="section-town" class="pick-list" data-province-select="section-province">
+      <option value="">همه</option>
+      {% for name, province in cities %}
+        <option value="{{ name }}" data-province="{{ province }}" {% if request.GET.town == name %}selected{% endif %}>{{ name }} — {{ province }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>تخصص
+    <select name="role" id="section-role" class="pick-list">
+      <option value="">همه</option>
+      {% for role in roles %}
+        <option value="{{ role.id }}" {% if request.GET.role == role.id|stringformat:"s" %}selected{% endif %}>{{ role.category.name }} — {{ role.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>فاصله
+    <select name="radius">
+      <option value="5" {% if request.GET.radius == "5" %}selected{% endif %}>تا ۵ کیلومتر</option>
+      <option value="10" {% if request.GET.radius == "10" %}selected{% endif %}>تا ۱۰ کیلومتر</option>
+      <option value="20" {% if request.GET.radius == "20" or not request.GET.radius %}selected{% endif %}>تا ۲۰ کیلومتر</option>
+      <option value="50" {% if request.GET.radius == "50" %}selected{% endif %}>تا ۵۰ کیلومتر</option>
+    </select>
+  </label>
+  <input type="hidden" name="lat" id="section-lat" value="{{ request.GET.lat }}">
+  <input type="hidden" name="lng" id="section-lng" value="{{ request.GET.lng }}">
+  {% include "talent/map_assets.html" %}
+  {% include "talent/location_picker.html" with picker_id="section-near" lat_id="section-lat" lng_id="section-lng" title="جستجو نزدیک خودت" hint="موقعیتت را تایید کن تا متخصص‌های همین بخش، اطراف تو بیایند." confirm_label="تایید و پیدا کن" submit_form="section-filter" start_hidden=1 external_open=1 %}
+  <script src="{% static 'talent/pick.js' %}?v=2"></script>
+  <div class="search-actions">
+    <button type="button" id="section-near-open" class="quiet">نزدیک من</button>
+    <button type="submit">پیدا کن</button>
+  </div>
+</form>
+<p class="result-count">{{ result_count }} متخصص در {{ section.name }}</p>
+<section class="cards">
+  {% for profile in page %}
+    <a class="card" href="{% url 'profile' profile.pk %}">
+      {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" alt="">
+      {% else %}
+        <span class="fallback">{{ profile.display_name|slice:":1" }}</span>
+      {% endif %}
+      <span class="name-line"><strong>{{ profile.display_name }}</strong>{% if profile.is_vip %}<span class="vip">VIP</span><span class="id-ok">هویت تایید شد</span>{% endif %}</span>
+      {% if profile.business_name %}<span>{{ profile.business_name }}</span>{% endif %}
+      <span class="muted">{% if profile.city %}{{ profile.city }}{% endif %}{% if profile.province %} · {{ profile.province }}{% endif %}</span>
+      <span>{{ profile.headline }}</span>
+      {% include "talent/stars.html" with score=profile.score_avg count=profile.score_count staff=profile.staff_score %}
+      {% if profile.distance_km %}<span class="muted">حدود {{ profile.distance_km }} کیلومتر</span>{% endif %}
+    </a>
+  {% empty %}
+    <p class="empty">در این بخش هنوز متخصص تاییدشده‌ای نیست.</p>
+  {% endfor %}
+</section>
+{% endblock %}

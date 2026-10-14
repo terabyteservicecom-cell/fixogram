@@ -1,0 +1,75 @@
+{% extends "talent/base.html" %}
+{% block title %}استخدام و نیاز به کار — فیکسوگرام{% endblock %}
+{% block content %}
+<h1>استخدام و نیاز به کار</h1>
+<p>دو جور آگهی اینجاست: کسی که نیرو می‌خواهد، و کسی که دنبال کار است. آگهی تازه تا تایید مدیر یا پشتیبان برای بقیه دیده نمی‌شود. مدت نمایش را خودت انتخاب می‌کنی؛ بعد از آن تاریخ آگهی خودکار حذف می‌شود.</p>
+
+<form class="global-search" method="get">
+  {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
+  <label>جستجو در آگهی‌ها
+    <input type="search" name="q" value="{{ query }}" placeholder="عنوان، شهر، لپ‌تاپ، پرینتر">
+  </label>
+  <button type="submit">پیدا کن</button>
+</form>
+
+<p class="filters">
+  <a href="{% url 'jobs' %}{% if query %}?q={{ query|urlencode }}{% endif %}" {% if not kind %}class="active"{% endif %}>همه</a>
+  <a href="?kind=hire{% if query %}&q={{ query|urlencode }}{% endif %}" {% if kind == "hire" %}class="active"{% endif %}>استخدام</a>
+  <a href="?kind=seek{% if query %}&q={{ query|urlencode }}{% endif %}" {% if kind == "seek" %}class="active"{% endif %}>نیاز به کار</a>
+</p>
+
+<section class="cards">
+  {% for post in posts %}
+    <a class="card" href="{% url 'job_detail' post.pk %}">
+      <span class="badge {% if post.kind == 'hire' %}ok{% else %}wait{% endif %}">{{ post.get_kind_display }}</span>
+      <strong>{{ post.title }}</strong>
+      <span>درخواست‌کننده: {{ post.author.profile.display_name|default:"بدون نام" }}</span>
+      <span class="muted">
+        {% if post.city %}{{ post.city }}{% endif %}
+        {% if post.category %} · {{ post.category }}{% endif %}
+        · {{ post.stay_line }}
+        {% if post.show_views %} · {{ post.view_line }}{% endif %}
+      </span>
+    </a>
+  {% empty %}
+    <p class="empty">با این مشخصات آگهی تاییدشده‌ای نیست.</p>
+  {% endfor %}
+</section>
+
+{% if user.is_authenticated %}
+<section class="panel">
+  <h2>آگهی جدید</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">ثبت آگهی</button>
+  </form>
+</section>
+
+{% if mine %}
+<section class="panel">
+  <h2>آگهی‌های من</h2>
+  {% for post in mine %}
+    <article class="block">
+      <p>
+        <span class="badge {% if post.kind == 'hire' %}ok{% else %}wait{% endif %}">{{ post.get_kind_display }}</span>
+        <strong>{{ post.title }}</strong>
+        {% if post.status == "pending" %}<span class="badge wait">در انتظار تایید</span>
+        {% elif post.status == "rejected" %}<span class="badge bad">رد شده</span>
+        {% else %}<span class="badge ok">منتشر شده</span>{% endif %}
+        <span class="muted">{{ post.stay_line }}</span>
+        <span class="muted">{{ post.view_line }}</span>
+        <a href="{% url 'job_detail' post.pk %}">دیدن آگهی</a>
+      </p>
+      <form method="post" action="{% url 'delete_job' post.pk %}">
+        {% csrf_token %}
+        <button class="quiet" type="submit">حذف</button>
+      </form>
+    </article>
+  {% endfor %}
+</section>
+{% endif %}
+{% else %}
+  <p>برای ثبت آگهی <a href="{% url 'login' %}?next={% url 'jobs' %}">وارد شو</a>.</p>
+{% endif %}
+{% endblock %}

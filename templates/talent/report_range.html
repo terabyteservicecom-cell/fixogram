@@ -1,0 +1,26 @@
+<div class="filters">
+  <a href="?range=today" {% if preset == "today" %}class="active"{% endif %}>امروز</a>
+  <a href="?range=7" {% if preset == "7" %}class="active"{% endif %}>۷ روز</a>
+  <a href="?range=30" {% if preset == "30" %}class="active"{% endif %}>۳۰ روز</a>
+  <a href="?range=90" {% if preset == "90" %}class="active"{% endif %}>۹۰ روز</a>
+</div>
+<form class="search" method="get">
+  <input type="hidden" name="range" value="custom">
+  <label>از تاریخ
+    <span class="jalali-field">
+      <input type="text" data-jalali name="start" value="{{ start }}" placeholder="۱۴۰۵/۰۷/۱۳" inputmode="numeric" autocomplete="off">
+      <button type="button" class="jalali-open" aria-label="تقویم شمسی">تقویم</button>
+    </span>
+  </label>
+  <label>تا تاریخ
+    <span class="jalali-field">
+      <input type="text" data-jalali name="end" value="{{ end }}" placeholder="۱۴۰۵/۰۷/۱۳" inputmode="numeric" autocomplete="off">
+      <button type="button" class="jalali-open" aria-label="تقویم شمسی">تقویم</button>
+    </span>
+  </label>
+  <div class="search-actions">
+    <button type="submit">نمایش این بازه</button>
+    <a class="button" href="?range={{ preset }}&amp;start={{ start|urlencode }}&amp;end={{ end|urlencode }}&amp;export=csv">دانلود گزارش</a>
+  </div>
+</form>
+<p class="result-count">{{ start_label }} تا {{ end_label }} · {{ total }} {{ unit }}</p>

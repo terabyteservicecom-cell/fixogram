@@ -1,0 +1,39 @@
+{% if banners %}
+<section class="banner{% if slim %} slim{% endif %}" aria-label="تبلیغات">
+  <div id="{{ slider_id }}">
+    {% for banner in banners %}
+      <a class="banner-slide" href="{% url 'banner_go' banner.pk %}" target="_blank" rel="noopener noreferrer" {% if not forloop.first %}hidden{% endif %}>
+        <img src="{{ banner.image.url }}" alt="{{ banner.title|default:'تبلیغ' }}">
+      </a>
+    {% endfor %}
+  </div>
+  {% if banners|length > 1 %}
+    <div class="banner-dots" role="tablist" aria-label="بنرهای تبلیغاتی">
+      {% for banner in banners %}
+        <button type="button" data-banner="{{ forloop.counter0 }}" {% if forloop.first %}class="active"{% endif %} aria-label="بنر {{ forloop.counter }}"></button>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+{% if banners|length > 1 %}
+<script>
+  (function () {
+    var root = document.getElementById("{{ slider_id }}");
+    if (!root) return;
+    var slides = Array.prototype.slice.call(root.querySelectorAll(".banner-slide"));
+    var dots = Array.prototype.slice.call(root.parentNode.querySelectorAll(".banner-dots [data-banner]"));
+    if (slides.length < 2) return;
+    var index = 0;
+    function show(next) {
+      index = (next + slides.length) % slides.length;
+      slides.forEach(function (slide, i) { slide.hidden = i !== index; });
+      dots.forEach(function (dot, i) { dot.classList.toggle("active", i === index); });
+    }
+    dots.forEach(function (dot) {
+      dot.addEventListener("click", function () { show(Number(dot.getAttribute("data-banner"))); });
+    });
+    setInterval(function () { show(index + 1); }, 5000);
+  })();
+</script>
+{% endif %}
+{% endif %}

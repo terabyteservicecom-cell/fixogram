@@ -1,0 +1,23 @@
+{
+  "app": "naghsh",
+  "platform": "django",
+  "django": {
+    "pythonVersion": "3.12",
+    "mirror": true,
+    "timezone": "Asia/Tehran",
+    "collectStatic": true,
+    "compileMessages": false,
+    "modifySettings": true,
+    "settingsFile": "./config/settings.py"
+  },
+  "disks": [
+    {
+      "name": "database",
+      "mountTo": "database"
+    },
+    {
+      "name": "media",
+      "mountTo": "media"
+    }
+  ]
+}

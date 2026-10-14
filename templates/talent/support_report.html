@@ -1,0 +1,51 @@
+{% extends "talent/staff_base.html" %}
+{% load talent_tags %}
+{% block title %}کارکرد پشتیبان — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>کارکرد پشتیبان</h1>
+<p>هر کاری که پشتیبان در پنل ذخیره می‌کند اینجا می‌ماند: تایید، رد، پاسخ تیکت و بقیه. مدیر سیستم در این فهرست نیست.</p>
+
+<div class="stat-grid">
+  {% for card in cards %}
+    <a class="stat{% if card.count %} has{% endif %}" href="?who={{ card.profile.user_id }}">
+      <strong>{{ card.profile.display_name|default:"بدون نام" }}</strong>
+      <span dir="ltr">{{ card.profile.phone }}</span>
+      <span>{{ card.count }} کار{% if card.labels %} · {{ card.labels|join:"، " }}{% endif %}</span>
+    </a>
+  {% empty %}
+    <p class="muted">پشتیبانی تعریف نشده.</p>
+  {% endfor %}
+</div>
+
+<p>
+  <a href="{% url 'support_report' %}">همه</a>
+  ·
+  <a href="?{% if who %}who={{ who }}&amp;{% endif %}export=csv">دانلود CSV</a>
+</p>
+
+<section class="panel">
+  <h2>آخرین کارها</h2>
+  {% if logs %}
+    <table class="report">
+      <thead>
+        <tr>
+          <th>پشتیبان</th>
+          <th>کار</th>
+          <th>زمان</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in logs %}
+          <tr>
+            <td>{{ row.user.profile.display_name|default:row.user.username }}</td>
+            <td>{{ row.summary }}</td>
+            <td>{{ row.created_at|jalali_dt }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">هنوز کاری ثبت نشده.</p>
+  {% endif %}
+</section>
+{% endblock %}

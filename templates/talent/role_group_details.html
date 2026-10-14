@@ -1,0 +1,30 @@
+<details class="review-details">
+  <summary>جزئیات</summary>
+  {% if group.signup %}
+    <div class="review-line">
+      <p>ثبت‌نام این کاربر هم منتظر تایید است.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="signup">
+        <input type="hidden" name="id" value="{{ group.profile.pk }}">
+        <label>دلیل رد
+          <textarea name="reason" rows="2" maxlength="500" placeholder="این متن را خود کاربر می‌بیند"></textarea>
+        </label>
+        <button type="submit" name="action" value="approve">تایید ثبت‌نام</button>
+        <button class="quiet" type="submit" name="action" value="reject">رد ثبت‌نام</button>
+      </form>
+    </div>
+  {% endif %}
+  {% for link in group.links %}
+    <div class="review-line">
+      <p>{{ link.role.name }} · {{ link.role.category.name }}</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="role">
+        <input type="hidden" name="id" value="{{ link.pk }}">
+        <button type="submit" name="action" value="approve">تایید</button>
+        <button class="quiet" type="submit" name="action" value="reject">رد</button>
+      </form>
+    </div>
+  {% endfor %}
+</details>

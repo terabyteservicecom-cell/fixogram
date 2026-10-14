@@ -1,0 +1,70 @@
+{% extends "talent/staff_base.html" %}
+{% block title %}تعریف پشتیبان — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>تعریف پشتیبان</h1>
+<p class="muted">این صفحه جدا از تعریف کاربر است. با شماره همراه حساب پشتیبان بساز، نام و شماره و دسترسی‌اش را عوض کن، یا حسابش را پاک کن. ورود با همان شماره و کد پیامکی است.</p>
+
+<section class="panel" id="new-support">
+  <h2>پشتیبان تازه</h2>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="kind" value="create-support">
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <p>
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </p>
+    {% endfor %}
+    <fieldset class="perm-picks">
+      <legend>دسترسی‌ها</legend>
+      {% for code, label in permissions %}
+        <label><input type="checkbox" name="perm" value="{{ code }}"> {{ label }}</label>
+      {% endfor %}
+    </fieldset>
+    <button type="submit">ساخت پشتیبان</button>
+  </form>
+</section>
+
+<section class="panel" id="supporter-list">
+  <h2>پشتیبان‌های فعلی</h2>
+  {% for account in supporters %}
+    <article class="block">
+      <form method="post" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="edit-support">
+        <input type="hidden" name="id" value="{{ account.pk }}">
+        {% if edit_form and edit_id == account.pk|stringformat:"s" %}
+          {{ edit_form.non_field_errors }}
+        {% endif %}
+        <p>
+          <label for="name-{{ account.pk }}">نام و نام خانوادگی</label>
+          <input id="name-{{ account.pk }}" name="display_name" maxlength="80" required value="{% if edit_form and edit_id == account.pk|stringformat:"s" %}{{ edit_form.display_name.value|default:'' }}{% else %}{{ account.display_name }}{% endif %}">
+        </p>
+        <p>
+          <label for="phone-{{ account.pk }}">شماره موبایل</label>
+          <input id="phone-{{ account.pk }}" name="phone" inputmode="tel" dir="ltr" maxlength="11" required value="{% if edit_form and edit_id == account.pk|stringformat:"s" %}{{ edit_form.phone.value|default:'' }}{% else %}{{ account.phone }}{% endif %}">
+        </p>
+        <div class="perm-picks">
+          {% for item in account.perm_rows %}
+            <label>
+              <input type="checkbox" name="perm" value="{{ item.code }}" {% if item.on %}checked{% endif %}>
+              {{ item.label }}
+            </label>
+          {% endfor %}
+        </div>
+        <button type="submit">ذخیره ویرایش</button>
+      </form>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="delete-support">
+        <input type="hidden" name="id" value="{{ account.pk }}">
+        <button class="quiet" type="submit" onclick="return confirm('این پشتیبان و حسابش برای همیشه پاک شود؟');">حذف پشتیبان</button>
+      </form>
+    </article>
+  {% empty %}
+    <p class="muted">هنوز پشتیبانی ساخته نشده.</p>
+  {% endfor %}
+</section>
+{% endblock %}

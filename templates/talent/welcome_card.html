@@ -1,0 +1,15 @@
+{% if welcome %}
+<div class="notice-back" role="dialog" aria-modal="true" aria-labelledby="notice-title">
+  <section class="notice">
+    <h2 id="notice-title">اطلاعیه</h2>
+    {% if welcome.body %}<p class="pre">{{ welcome.body }}</p>{% endif %}
+    {% if welcome.audio %}<audio controls preload="none" src="{{ welcome.audio.url }}"></audio>{% endif %}
+    {% if welcome.video %}<video controls preload="metadata" src="{{ welcome.video.url }}"></video>{% endif %}
+    <form method="post" action="{% url 'dismiss_welcome' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit">دیگر نمایش نده</button>
+    </form>
+  </section>
+</div>
+{% endif %}

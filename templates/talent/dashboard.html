@@ -1,0 +1,213 @@
+{% extends "talent/base.html" %}
+{% load static %}
+{% block title %}صفحه من — فیکسوگرام{% endblock %}
+{% block content %}
+<h1>صفحه من</h1>
+{% if profile.account_status == "pending" %}
+  <p>اطلاعات را همین‌جا کامل کن. تا مدیر یا پشتیبان تایید نکند، صفحه تو در جستجو دیده نمی‌شود.</p>
+{% elif profile.account_status == "rejected" %}
+  <p>ثبت‌نام رد شده است. دلیل را بخوان، اگر لازم است مشخصات را اصلاح کن و دوباره درخواست بده.</p>
+  {% if profile.rejection_note %}<p class="reject-note">دلیل رد: {{ profile.rejection_note }}</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="reapply">
+    <button type="submit">درخواست دوباره</button>
+  </form>
+{% elif not profile.is_public %}
+  <p>صفحه تو هنوز در جستجو نیست. تخصص را انتخاب کن و صبر کن تا مدیر یا پشتیبان تایید کند.</p>
+{% else %}
+  <p class="muted">صفحه تو برای بقیه باز است.</p>
+{% endif %}
+<p><a href="{% url 'profile' profile.pk %}">دیدن صفحه عمومی</a></p>
+{% if profile.is_vip %}<p class="id-ok">هویت تو تایید شد.</p>{% endif %}
+{% if user.is_staff %}<p><a href="#welcome-edit">پیام خوش‌آمد برای تازه‌واردها</a></p>{% endif %}
+
+<section class="panel" id="info">
+  <h2>مشخصات</h2>
+  <form method="post" enctype="multipart/form-data" class="fields" id="profile-form">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="profile">
+    {% include "talent/map_assets.html" %}
+    <div class="me-head">
+      {% if profile.avatar %}
+        <img class="avatar" src="{{ profile.avatar.url }}" alt="عکس چهره">
+      {% else %}
+        <span class="avatar fallback">{{ profile.display_name|default:"؟"|slice:":1" }}</span>
+      {% endif %}
+      <div>
+        <p>
+          {{ profile_form.avatar.label_tag }}
+          {{ profile_form.avatar }}
+          {{ profile_form.avatar.errors }}
+          {% if profile_form.avatar.help_text %}<span class="helptext">{{ profile_form.avatar.help_text }}</span>{% endif %}
+        </p>
+      </div>
+    </div>
+    {% if profile.phone %}
+      <p class="locked-phone">شماره ورود <strong dir="ltr">{{ profile.phone }}</strong></p>
+      <p class="muted">این شماره برای ورود است و فقط مدیر می‌تواند عوضش کند. روی صفحه عمومی نیست.</p>
+    {% else %}
+      <p>
+        {{ profile_form.phone.label_tag }}
+        {{ profile_form.phone }}
+        {{ profile_form.phone.errors }}
+      </p>
+    {% endif %}
+    <p>
+      {{ profile_form.contact_phone.label_tag }}
+      {{ profile_form.contact_phone }}
+      {{ profile_form.contact_phone.errors }}
+      {% if profile_form.contact_phone.help_text %}<span class="helptext">{{ profile_form.contact_phone.help_text }}</span>{% endif %}
+    </p>
+    {% for field in profile_form %}
+      {% if field.name == "display_name" or field.name == "business_name" or field.name == "headline" %}
+        <p>
+          {{ field.label_tag }}
+          {{ field }}
+          {{ field.errors }}
+        </p>
+      {% endif %}
+    {% endfor %}
+    <details class="fold">
+      <summary>محل و آدرس</summary>
+      {% for field in profile_form %}
+        {% if field.name == "province" or field.name == "city" or field.name == "address" or field.name == "latitude" or field.name == "longitude" %}
+          {% if field.name == "latitude" or field.name == "longitude" %}
+            {{ field }}
+          {% else %}
+            <p>
+              {{ field.label_tag }}
+              {{ field }}
+              {{ field.errors }}
+            </p>
+          {% endif %}
+          {% if field.name == "address" %}
+            {% include "talent/location_picker.html" with picker_id="profile" lat_id="profile_latitude" lng_id="profile_longitude" title="ثبت موقعیت" hint="موقعیت دستگاه را بگیر یا روی نقشه بزن." save=1 %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </details>
+    <details class="fold">
+      <summary>معرفی</summary>
+      {% for field in profile_form %}
+        {% if field.name == "bio" or field.name == "about_business" %}
+          <p>
+            {{ field.label_tag }}
+            {{ field }}
+            {{ field.errors }}
+          </p>
+        {% endif %}
+      {% endfor %}
+    </details>
+    <details class="fold">
+      <summary>شبکه‌ها و نام کاربری</summary>
+      {% for field in profile_form %}
+        {% if field.name == "instagram" or field.name == "telegram" or field.name == "whatsapp" or field.name == "website" or field.name == "username" %}
+          <p>
+            {{ field.label_tag }}
+            {{ field }}
+            {{ field.errors }}
+            {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+          </p>
+        {% endif %}
+      {% endfor %}
+    </details>
+    <button type="submit">ذخیره مشخصات</button>
+  </form>
+  <script src="{% static 'talent/pick.js' %}?v=2"></script>
+</section>
+
+<section class="panel" id="roles">
+  <h2>تخصص</h2>
+  <p class="muted">تخصص اصلی و زیرمجموعه‌ها را جدا تیک بزن. چند تا را می‌توانی با هم انتخاب کنی. تا تایید مدیر در جستجو دیده نمی‌شود. ردشده را دوباره می‌توانی انتخاب کنی.</p>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="roles">
+    {% include "talent/specialty_board.html" %}
+    <button type="submit">ذخیره تخصص‌ها</button>
+  </form>
+</section>
+
+<details class="panel fold" id="photos">
+  <summary>دو عکس دیگر</summary>
+  <p class="muted">غیر از عکس چهره، فقط دو عکس دیگر. برای عوض کردن، عکس قبلی را حذف کن و تازه بگذار. اندازه و حجم را خود سایت تنظیم می‌کند.</p>
+  <div class="gallery">
+    {% for photo in profile.photos.all %}
+      <figure>
+        <img src="{{ photo.image.url }}" alt="{{ photo.caption }}">
+        <figcaption>{{ photo.caption }}</figcaption>
+        <form method="post" action="{% url 'delete_photo' photo.pk %}">
+          {% csrf_token %}
+          <button class="quiet" type="submit">حذف</button>
+        </form>
+      </figure>
+    {% endfor %}
+  </div>
+  {% if profile.photos.count < 2 %}
+    <form method="post" enctype="multipart/form-data" class="fields">
+      {% csrf_token %}
+      <input type="hidden" name="form" value="photo">
+      {{ photo_form.as_p }}
+      <button type="submit">گذاشتن عکس</button>
+    </form>
+  {% else %}
+    <p class="muted">هر دو جا پر است.</p>
+  {% endif %}
+</details>
+
+<details class="panel fold" id="identity">
+  <summary>ابراز هویت VIP</summary>
+  <p class="muted">کارت ملی، شناسنامه یا جواز. فایل فقط برای خودت و مدیر باز است. بعد از تایید مدیر، اینجا و روی کارت تو می‌نویسد هویت تایید شد.</p>
+  {% if profile.is_vip %}<p class="id-ok">هویت تو تایید شد.</p>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="fields">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="identity">
+    {{ identity_form.as_p }}
+    <button type="submit">فرستادن مدرک</button>
+  </form>
+  {% for document in identity_documents %}
+    <article class="block">
+      <p>
+        <strong>{{ document.label }}</strong>
+        <span class="badge {% if document.status == 'approved' %}ok{% elif document.status == 'rejected' %}bad{% else %}wait{% endif %}">{{ document.get_status_display }}</span>
+      </p>
+      <p><a href="{% url 'identity_file' document.pk %}">دیدن فایل</a></p>
+    </article>
+  {% endfor %}
+</details>
+
+<details class="panel fold" id="resume">
+  <summary>رزومه</summary>
+  <form method="post" class="fields">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="resume">
+    {{ resume_form.as_p }}
+    <button type="submit">افزودن سابقه</button>
+  </form>
+  {% for item in profile.resume_items.all %}
+    <article class="block">
+      <h3>{{ item.title }}{% if item.role_name %} — {{ item.role_name }}{% endif %}</h3>
+      <form method="post" action="{% url 'delete_resume' item.pk %}">
+        {% csrf_token %}
+        <button class="quiet" type="submit">حذف</button>
+      </form>
+    </article>
+  {% endfor %}
+</details>
+
+{% if user.is_staff %}
+<section class="panel" id="welcome-edit">
+  <h2>اطلاعیه</h2>
+  <p class="muted">روشن یا خاموش کن و متن را عوض کن. هر فایل حداکثر ۸ مگابایت است.</p>
+  {% if welcome_note and welcome_note.is_ready %}
+    <p>پیام فعلی ذخیره شده است.{% if welcome_note.audio %} صدا دارد.{% endif %}{% if welcome_note.video %} ویدیو دارد.{% endif %}</p>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="welcome">
+    {{ welcome_form.as_p }}
+    <button type="submit">ذخیره اطلاعیه</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

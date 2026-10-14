@@ -1,0 +1,356 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  {% if seo.title %}<title>{{ seo.title }}</title>{% else %}<title>{% block title %}فیکسوگرام{% endblock %}</title>{% endif %}
+  <meta name="description" content="{{ seo.description }}">
+  <link rel="canonical" href="{{ seo.canonical }}">
+  <meta name="robots" content="{{ seo.robots }}">
+  <meta property="og:locale" content="fa_IR">
+  <meta property="og:site_name" content="فیکسوگرام">
+  <meta property="og:type" content="{{ seo.type }}">
+  <meta property="og:title" content="{{ seo.title|default:'فیکسوگرام' }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ seo.canonical }}">
+  {% if seo.image %}<meta property="og:image" content="{{ seo.image }}">{% endif %}
+  <meta name="twitter:card" content="{% if seo.image %}summary_large_image{% else %}summary{% endif %}">
+  {% if seo.json %}<script type="application/ld+json">{{ seo.json|safe }}</script>{% endif %}
+  <meta name="theme-color" content="#0b1424">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="فیکسوگرام">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="manifest" href="{% url 'manifest' %}">
+  <link rel="apple-touch-icon" href="{% static 'talent/apple-touch-icon.png' %}?v=4">
+  <link rel="icon" href="{% static 'talent/favicon.png' %}?v=4">
+  <link rel="stylesheet" href="{% static 'talent/style.css' %}?v=87">
+  <script>
+    window.__installPrompt = null;
+    window.tnInstall = function () {
+      var event = window.__installPrompt;
+      if (!event || typeof event.prompt !== "function") return;
+      window.__installPrompt = null;
+      var bar = document.querySelector(".phone-install");
+      if (bar) bar.hidden = true;
+      event.prompt();
+    };
+    window.addEventListener("beforeinstallprompt", function (event) {
+      event.preventDefault();
+      window.__installPrompt = event;
+    });
+    if ("serviceWorker" in navigator) {
+      var workerUrl = "{% url 'service_worker' %}";
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        var waits = [];
+        for (var i = 0; i < regs.length; i++) {
+          var worker = regs[i].active || regs[i].waiting || regs[i].installing;
+          var script = worker ? worker.scriptURL : "";
+          if (script.indexOf(workerUrl) === -1) waits.push(regs[i].unregister());
+        }
+        return Promise.all(waits);
+      }).then(function () {
+        return navigator.serviceWorker.register(workerUrl, { updateViaCache: "none" });
+      });
+    }
+  </script>
+  <script>
+    (function () {
+      var saved = localStorage.getItem("naghsh-theme");
+      var theme = saved === "day" || saved === "night" ? saved : "night";
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+</head>
+<body>
+  <header class="bar">
+    {% if show_online_bar %}
+      <div class="online-bar" aria-label="افراد آنلاین">
+        {% if staff_access.reports %}
+          <a href="{% url 'reports' %}">{{ online_count }} نفر آنلاین</a>
+        {% else %}
+          <span class="online-total">{{ online_count }} نفر آنلاین</span>
+        {% endif %}
+        {% for person in online_people %}
+          <span>{{ person.name }}{% if person.page %} · {{ person.page }}{% endif %}</span>
+        {% empty %}
+          <span>الان کسی در سایت نیست</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <div class="top">
+    <a class="brand" href="{% url 'home' %}"><img class="logo" src="{% static 'talent/logo.png' %}?v=3" alt="فیکسوگرام"></a>
+    <nav class="menu" aria-label="صفحه‌ها">
+      {% if is_visitor %}
+        <a href="{% url 'field_desk' %}" {% if request.resolver_match.url_name == "field_desk" %}aria-current="page"{% endif %}>پذیرش</a>
+      {% else %}
+      <a href="{% url 'home' %}" {% if request.resolver_match.url_name == "home" %}aria-current="page"{% endif %}>جستجو</a>
+      <a href="{% url 'jobs' %}" {% if request.resolver_match.url_name == "jobs" %}aria-current="page"{% endif %}>استخدام و کاریابی</a>
+      <a href="{% url 'blog' %}" {% if request.resolver_match.url_name == "blog" or request.resolver_match.url_name == "blog_detail" %}aria-current="page"{% endif %}>بلاگ</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == "dashboard" %}aria-current="page"{% endif %}>صفحه من</a>
+        <a href="{% url 'bookmarks' %}" {% if request.resolver_match.url_name == "bookmarks" %}aria-current="page"{% endif %}>ذخیره‌ها</a>
+        <a href="{% url 'inbox' %}" {% if request.resolver_match.url_name == "inbox" or request.resolver_match.url_name == "thread" %}aria-current="page"{% endif %}>پیام‌ها <span class="count" data-unread {% if not unread_count %}hidden{% endif %}>{{ unread_count }}</span></a>
+        <a href="{% url 'tickets' %}" {% if request.resolver_match.url_name == "tickets" %}aria-current="page"{% endif %}>تیکت</a>
+        {% if user.is_staff %}
+          <a href="{% url 'desk' %}" {% if request.resolver_match.url_name == "desk" or request.resolver_match.url_name == "moderation" or request.resolver_match.url_name == "support" or request.resolver_match.url_name == "categories" or request.resolver_match.url_name == "broadcast" or request.resolver_match.url_name == "banners" or request.resolver_match.url_name == "reports" or request.resolver_match.url_name == "visit_report" or request.resolver_match.url_name == "banner_report" or request.resolver_match.url_name == "blog_write" or request.resolver_match.url_name == "blog_edit" or request.resolver_match.url_name == "sms_settings" or request.resolver_match.url_name == "manage_jobs" %}aria-current="page"{% endif %}>پنل{% if pending_count %} <span class="count">{{ pending_count }}</span>{% endif %}</a>
+          {% if staff_access.reports %}
+            <a class="online-pill" href="{% url 'reports' %}">{{ online_count }} نفر آنلاین</a>
+          {% else %}
+            <span class="online-pill">{{ online_count }} نفر آنلاین</span>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+      {% endif %}
+    </nav>
+    <div class="account">
+      <div class="theme" role="group" aria-label="رنگ صفحه">
+        <button type="button" data-theme-choice="day">روز</button>
+        <button type="button" data-theme-choice="night">شب</button>
+      </div>
+      {% if user.is_authenticated %}
+        {% if not is_visitor and push_public_key %}
+          <button type="button" class="linkish push-enable" data-push-enable data-push-key="{{ push_public_key }}" hidden>اعلان پیام</button>
+        {% endif %}
+        <a class="me" href="{% if is_visitor %}{% url 'field_desk' %}{% else %}{% url 'dashboard' %}{% endif %}" title="صفحه من">
+          {% if my_avatar %}
+            <img class="mini" src="{{ my_avatar }}" alt="عکس پروفایل">
+          {% else %}
+            <span class="mini">{{ my_initial }}</span>
+          {% endif %}
+        </a>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="linkish" type="submit">خروج</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}">ورود</a>
+        <a class="button small" href="{% url 'signup' %}">ثبت‌نام</a>
+      {% endif %}
+    </div>
+    </div>
+  </header>
+  {% include "talent/welcome_card.html" %}
+  {% if user.is_authenticated %}
+    <aside class="msg-note" data-msg-note hidden>
+      <p data-msg-title>پیام تازه</p>
+      <p data-msg-body></p>
+      <div class="msg-note-actions">
+        <a class="button small" data-msg-open href="{% url 'inbox' %}">دیدن پیام</a>
+        <button type="button" class="linkish" data-msg-close>بستن</button>
+      </div>
+    </aside>
+  {% endif %}
+  <p class="saved-note" data-saved-note hidden role="status">ثبت شد</p>
+  <main>
+    {% if messages %}
+      <ul class="flash">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <p>{{ home_copy.footer }}</p>
+  </footer>
+  <div class="phone-install" hidden>
+    <button type="button" data-install-app onclick="tnInstall()">نصب روی گوشی</button>
+  </div>
+  <script>
+    window.tnSaved = function () {
+      var note = document.querySelector("[data-saved-note]");
+      if (!note) return;
+      note.hidden = false;
+      window.clearTimeout(window.__savedTimer);
+      window.__savedTimer = window.setTimeout(function () { note.hidden = true; }, 2600);
+    };
+    (function () {
+      var pending = false;
+      try {
+        pending = sessionStorage.getItem("tn-saved") === "1";
+        if (pending) sessionStorage.removeItem("tn-saved");
+      } catch (error) {}
+      var flash = document.querySelector(".flash li.success");
+      var savedFlash = flash && /ثبت|ذخیره|تایید|اضافه|حذف|عوض/.test(flash.textContent || "");
+      if (pending || savedFlash) window.tnSaved();
+    })();
+    (function () {
+      var root = document.documentElement;
+      function paint(theme) {
+        root.setAttribute("data-theme", theme);
+        var color = document.querySelector("meta[name='theme-color']");
+        if (color) color.setAttribute("content", theme === "day" ? "#eef5fc" : "#0b1424");
+        document.querySelectorAll("[data-theme-choice]").forEach(function (button) {
+          button.classList.toggle("active", button.getAttribute("data-theme-choice") === theme);
+        });
+      }
+      paint(root.getAttribute("data-theme") || "night");
+      document.querySelectorAll("[data-theme-choice]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var theme = button.getAttribute("data-theme-choice");
+          localStorage.setItem("naghsh-theme", theme);
+          paint(theme);
+        });
+      });
+    })();
+    (function () {
+      var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+      var bar = document.querySelector(".phone-install");
+      function showBar() {
+        if (!standalone && bar && window.__installPrompt) bar.hidden = false;
+      }
+      window.addEventListener("beforeinstallprompt", function () { showBar(); });
+      window.addEventListener("appinstalled", function () {
+        window.__installPrompt = null;
+        if (bar) bar.hidden = true;
+      });
+      showBar();
+    })();
+    {% if user.is_authenticated %}
+    (function () {
+      var box = document.querySelector("[data-msg-note]");
+      if (!box) return;
+      var title = box.querySelector("[data-msg-title]");
+      var body = box.querySelector("[data-msg-body]");
+      var open = box.querySelector("[data-msg-open]");
+      var badge = document.querySelector("[data-unread]");
+      var seenKey = "naghsh-msg-seen";
+      var baseKey = "naghsh-msg-base";
+      var primed = sessionStorage.getItem(baseKey) !== null;
+      function paint(data) {
+        if (badge) {
+          badge.hidden = !data.count;
+          badge.textContent = data.count ? String(data.count) : "";
+        }
+        if (!data.count || !data.latest_id) {
+          box.hidden = true;
+          return;
+        }
+        box.setAttribute("data-latest", String(data.latest_id));
+        var seen = Number(sessionStorage.getItem(seenKey) || 0);
+        var base = Number(sessionStorage.getItem(baseKey) || 0);
+        if (!primed) {
+          sessionStorage.setItem(baseKey, String(data.latest_id));
+          primed = true;
+          base = data.latest_id;
+        }
+        if (data.latest_id <= seen) {
+          box.hidden = true;
+          return;
+        }
+        title.textContent = data.count > 1 ? data.count + " پیام نخوانده" : "پیام تازه";
+        body.textContent = data.name ? data.name + ": " + data.preview : data.preview;
+        if (data.url) open.href = data.url;
+        box.hidden = false;
+        if (data.latest_id > base && !window.__pushOn && window.Notification && Notification.permission === "granted" && navigator.serviceWorker) {
+          var noteBody = data.name ? data.name + ": " + data.preview : data.preview;
+          navigator.serviceWorker.ready.then(function (reg) {
+            reg.showNotification("پیام تازه در فیکسوگرام", {
+              body: noteBody,
+              icon: "{% static 'talent/icon-192.png' %}?v=4",
+              dir: "rtl",
+              lang: "fa",
+              tag: "msg-" + data.latest_id,
+              data: { url: data.url || "{% url 'inbox' %}" }
+            });
+          }).catch(function () {});
+          sessionStorage.setItem(baseKey, String(data.latest_id));
+        }
+      }
+      function ping() {
+        fetch("{% url 'message_ping' %}", { headers: { "Accept": "application/json" }, credentials: "same-origin" })
+          .then(function (response) { return response.ok ? response.json() : null; })
+          .then(function (data) { if (data) paint(data); })
+          .catch(function () {});
+      }
+      box.querySelector("[data-msg-close]").addEventListener("click", function () {
+        var id = box.getAttribute("data-latest");
+        if (id) sessionStorage.setItem(seenKey, id);
+        box.hidden = true;
+      });
+      var pushButton = document.querySelector("[data-push-enable]");
+      function csrfToken() {
+        var match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+      function keyBytes(value) {
+        var padded = value + "===".slice((value.length + 3) % 4);
+        var raw = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+        var out = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+        return out;
+      }
+      function subscribePush() {
+        if (!pushButton || !("serviceWorker" in navigator) || !("PushManager" in window)) return Promise.resolve(false);
+        var key = pushButton.getAttribute("data-push-key") || "";
+        if (!key) return Promise.resolve(false);
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.pushManager.getSubscription().then(function (existing) {
+            return existing || reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: keyBytes(key)
+            });
+          });
+        }).then(function (sub) {
+          var raw = sub.toJSON();
+          return fetch("{% url 'push_subscribe' %}", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+            body: JSON.stringify(raw)
+          });
+        }).then(function (response) {
+          window.__pushOn = !!(response && response.ok);
+          return window.__pushOn;
+        }).catch(function () { return false; });
+      }
+      function showPushButton() {
+        if (!pushButton || !window.Notification) return;
+        pushButton.hidden = Notification.permission !== "default";
+      }
+      if (pushButton) {
+        pushButton.addEventListener("click", function () {
+          if (!window.Notification) return;
+          Notification.requestPermission().then(function (result) {
+            showPushButton();
+            if (result === "granted") subscribePush();
+          });
+        });
+      }
+      showPushButton();
+      if (window.Notification && Notification.permission === "granted") subscribePush();
+      ping();
+      window.setInterval(ping, 20000);
+    })();
+    {% endif %}
+  </script>
+  <script src="{% static 'talent/jalali.js' %}?v=1"></script>
+  <script>
+    document.querySelectorAll("[data-copy-link]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var url = button.getAttribute("data-copy-link") || "";
+        var label = button.textContent;
+        function done() {
+          button.textContent = "لینک کپی شد";
+          window.setTimeout(function () { button.textContent = label; }, 1600);
+        }
+        function fallback() {
+          var input = document.createElement("textarea");
+          input.value = url;
+          document.body.appendChild(input);
+          input.select();
+          try { document.execCommand("copy"); } catch (error) {}
+          input.remove();
+          done();
+        }
+        var clip = navigator.clipboard;
+        if (clip && clip.writeText) clip.writeText(url).then(done).catch(fallback);
+        else fallback();
+      });
+    });
+  </script>
+</body>
+</html>

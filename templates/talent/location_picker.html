@@ -1,0 +1,35 @@
+<div class="loc" id="{{ picker_id }}-box" {% if start_hidden %}hidden{% endif %}>
+  {% if title %}<p class="loc-title">{{ title }}</p>{% endif %}
+  {% if hint %}<p class="muted">{{ hint }}</p>{% endif %}
+  <div id="{{ picker_id }}-map" class="loc-map"></div>
+  <p id="{{ picker_id }}-status" class="loc-status" role="status"></p>
+  {% if not readonly %}
+    <div class="loc-actions">
+      {% if not external_open %}
+        <button type="button" id="{{ picker_id }}-open">{{ open_label|default:"باز کردن موقعیت من" }}</button>
+      {% endif %}
+      <button type="button" id="{{ picker_id }}-confirm">{{ confirm_label|default:"تایید موقعیت" }}</button>
+    </div>
+  {% endif %}
+</div>
+<script>
+  (function () {
+    function mount() {
+      if (!window.NaghshMap) return;
+      window.NaghshMap({
+        map: "{{ picker_id }}-map",
+        lat: "{{ lat_id }}",
+        lng: "{{ lng_id }}",
+        open: "{{ picker_id }}-open",
+        confirm: "{{ picker_id }}-confirm",
+        status: "{{ picker_id }}-status",
+        box: "{{ picker_id }}-box",
+        submit: "{{ submit_form|default:'' }}",
+        save: {{ save|yesno:"true,false" }},
+        readonly: {{ readonly|yesno:"true,false" }}
+      });
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount);
+    else mount();
+  })();
+</script>

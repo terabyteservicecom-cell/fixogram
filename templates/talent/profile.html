@@ -1,0 +1,186 @@
+{% extends "talent/base.html" %}
+{% block title %}{{ profile.display_name }} — فیکسوگرام{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="مسیر">
+  <a href="{% url 'home' %}">فیکسوگرام</a>
+  {% if approved_roles %}<a href="{% url 'section' approved_roles.0.role.category.slug %}">{{ approved_roles.0.role.category.name }}</a>{% endif %}
+  <span>{{ profile.display_name }}</span>
+</nav>
+<article class="sheet">
+  {% if profile.archived_at %}
+    <p>این حساب بایگانی شده و برای دیگران دیده نمی‌شود.</p>
+  {% endif %}
+  {% if user == profile.user and not profile.is_public and not profile.archived_at %}
+    <p>این صفحه را فقط خودت و مدیر می‌بینید. بعد از تایید تخصص، در جستجو می‌آید.</p>
+  {% endif %}
+  <header class="person">
+    {% if profile.avatar %}
+      <img class="avatar" src="{{ profile.avatar.url }}" alt="">
+    {% else %}
+      <span class="avatar fallback">{{ profile.display_name|slice:":1" }}</span>
+    {% endif %}
+    <div>
+      <h1>
+        {{ profile.display_name|default:"بدون نام" }}
+        {% if profile.is_vip %}<span class="vip">VIP</span> <span class="id-ok">هویت تایید شد</span>{% endif %}
+      </h1>
+      {% if profile.business_name %}<p>{{ profile.business_name }}</p>{% endif %}
+      {% if public_username %}<p class="muted">نام کاربری: {{ public_username }}</p>{% endif %}
+      <p>{{ profile.headline }}</p>
+      <p class="muted score-line">
+        {% if profile.city %}{{ profile.city }}{% endif %}
+        {% if profile.province %} · {{ profile.province }}{% endif %}
+        {% include "talent/stars.html" with score=average count=rating_count staff=profile.staff_score %}
+        {% if profile.staff_score %}<span class="staff-score">امتیاز مدیریت {{ profile.staff_score }} از ۵</span>{% endif %}
+      </p>
+      <div class="chips">
+        <span class="chip-lead">متخصص در تعمیرات</span>
+        {% for link in approved_roles %}
+          <span class="badge ok">{{ link.role.name }}</span>
+        {% empty %}
+          <span class="badge wait">هنوز تخصصی تایید نشده</span>
+        {% endfor %}
+      </div>
+    </div>
+  </header>
+  {% url 'profile' profile.pk as share_path %}
+  {% include "talent/share_save.html" with kind="profile" object_id=profile.pk saved=item_saved share_path=share_path title=profile.display_name %}
+  {% if staff_access.moderate and user.id != profile.user_id and not profile.user.is_staff %}
+    <form method="post" action="{% url 'moderation' %}" onsubmit="return confirm('این پروفایل برای همیشه پاک شود؟');">
+      {% csrf_token %}
+      <input type="hidden" name="kind" value="account">
+      <input type="hidden" name="id" value="{{ profile.pk }}">
+      <button type="submit" name="action" value="delete">حذف پروفایل</button>
+    </form>
+  {% endif %}
+
+  <section>
+    <h2>شماره تماس</h2>
+    {% if can_see_phone %}
+      <p class="phone"><a href="tel:{{ profile.contact_phone }}">{{ profile.contact_phone }}</a></p>
+      {% if user == profile.user %}
+        <p class="muted">این همان شماره‌ای است که بعد از تایید مدیر به کاربران نشان داده می‌شود.</p>
+      {% endif %}
+    {% elif not profile.contact_phone %}
+      <p>شماره تماسی برای نمایش ثبت نشده.</p>
+    {% elif not user.is_authenticated %}
+      <p>برای درخواست شماره، <a href="{% url 'login' %}?next={{ request.path }}">وارد شو</a>.</p>
+    {% elif phone_request.status == "pending" %}
+      <p>درخواست تو ثبت شده و منتظر تایید مدیر است.</p>
+    {% elif phone_request.status == "rejected" %}
+      <p>مدیر این درخواست را رد کرده است.</p>
+      <form method="post" action="{% url 'request_phone' profile.pk %}">
+        {% csrf_token %}
+        <button type="submit">درخواست دوباره</button>
+      </form>
+    {% else %}
+      <p class="muted">شماره مخفی است. اگر هماهنگی لازم شد، درخواست بده تا مدیر بررسی کند.</p>
+      <form method="post" action="{% url 'request_phone' profile.pk %}">
+        {% csrf_token %}
+        <button type="submit">درخواست دیدن شماره</button>
+      </form>
+    {% endif %}
+    {% if user.is_authenticated and user != profile.user %}
+      <p><a class="button" href="{% url 'start_thread' profile.pk %}">ارسال پیام برای هماهنگی</a></p>
+    {% endif %}
+  </section>
+
+  {% if user != profile.user %}
+    <p class="report-box">
+      <a class="report-link" href="{% url 'report_profile' profile.pk %}">گزارش تخلف</a>
+    </p>
+  {% endif %}
+
+  {% if profile.bio %}
+    <section>
+      <h2>معرفی</h2>
+      <p class="pre">{{ profile.bio }}</p>
+    </section>
+  {% endif %}
+
+  {% if profile.about_business %}
+    <section>
+      <h2>مجموعه</h2>
+      <p class="pre">{{ profile.about_business }}</p>
+    </section>
+  {% endif %}
+
+  {% if profile.address or profile.latitude %}
+    <section>
+      <h2>آدرس و موقعیت</h2>
+      {% if profile.address %}<p>{{ profile.address }}</p>{% endif %}
+      {% if profile.latitude and profile.longitude %}
+        {% include "talent/map_assets.html" %}
+        <input type="hidden" id="show-lat" value="{{ profile.latitude }}">
+        <input type="hidden" id="show-lng" value="{{ profile.longitude }}">
+        {% include "talent/location_picker.html" with picker_id="show" lat_id="show-lat" lng_id="show-lng" readonly=1 %}
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if profile.instagram or profile.telegram or profile.whatsapp or profile.website %}
+    <section>
+      <h2>شبکه‌های اجتماعی</h2>
+      {% include "talent/social_links.html" %}
+    </section>
+  {% endif %}
+
+  <section>
+    <h2>عکس‌ها</h2>
+    <div class="gallery">
+      {% for photo in profile.photos.all %}
+        <figure>
+          <img src="{{ photo.image.url }}" alt="{{ photo.caption }}">
+          {% if photo.caption %}<figcaption>{{ photo.caption }}</figcaption>{% endif %}
+        </figure>
+      {% empty %}
+        <p class="muted">عکسی گذاشته نشده.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section id="reviews">
+    <h2>امتیاز و انتقاد</h2>
+    {% if user.is_authenticated and user != profile.user %}
+      <form method="post" action="{% url 'rate' profile.pk %}" class="review-compose">
+        {% csrf_token %}
+        <div class="stars-input">
+          <span class="review-label">امتیاز</span>
+          {{ rating_form.score }}
+        </div>
+        <label class="review-note">انتقاد
+          {{ rating_form.comment }}
+        </label>
+        <button type="submit">{% if my_rating %}ویرایش{% else %}ثبت{% endif %}</button>
+      </form>
+    {% elif not user.is_authenticated %}
+      <p class="muted">برای امتیاز دادن وارد شو.</p>
+    {% endif %}
+    <div class="review-list">
+      {% for rating in profile.ratings.all %}
+        <article class="review-card">
+          <strong><a href="{% url 'profile' rating.rater.profile.pk %}">{{ rating.rater.profile.display_name }}</a></strong>
+          <span class="score">★ {{ rating.score }}</span>
+          {% if rating.comment %}<p>{{ rating.comment }}</p>{% endif %}
+        </article>
+      {% empty %}
+        <p class="muted">هنوز امتیازی ثبت نشده.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <h2>سابقه</h2>
+    {% for item in profile.resume_items.all %}
+      <article class="block">
+        <h3>{{ item.title }}{% if item.year %} · {{ item.year }}{% endif %}</h3>
+        {% if item.role_name %}<p>{{ item.role_name }}</p>{% endif %}
+        <p class="pre">{{ item.description }}</p>
+      </article>
+    {% empty %}
+      <p class="muted">سابقه‌ای نوشته نشده.</p>
+    {% endfor %}
+  </section>
+
+</article>
+{% endblock %}

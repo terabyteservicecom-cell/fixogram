@@ -1,0 +1,85 @@
+{% extends "talent/staff_base.html" %}
+{% load talent_tags %}
+{% block title %}بنرها — فیکسوگرام{% endblock %}
+{% block desk %}
+<h1>بنر تبلیغاتی</h1>
+<div class="reminder">
+  <p><strong>اندازه و حجم بنر</strong></p>
+  <p>صفحه اول: سه بنر چرخشی. هر عکس به ۱۲۰۰ در ۳۰۰ پیکسل تنظیم می‌شود. الان {{ home_count }} از ۳.</p>
+  <p>داخل هر دسته: دو بنر کوچک کنار هم. هر عکس به ۵۶۰ در ۱۶۰ پیکسل تنظیم می‌شود.</p>
+  <p>بلاگ: دو بنر کوچک کنار هم، همان اندازه. الان {{ blog_count }} از ۲.</p>
+  <p>فرمت JPG، PNG یا WEBP.</p>
+</div>
+
+<section class="panel">
+  <h2>بنرهای فعلی</h2>
+  <ul class="banner-tally">
+    <li><span>کل</span><strong>{{ banner_total|persian }}</strong></li>
+    <li><span>پر شده</span><strong>{{ banner_filled|persian }}</strong></li>
+    <li><span>باقی‌مانده</span><strong>{{ banner_left|persian }}</strong></li>
+  </ul>
+  <p class="muted">باقی‌مانده بنرهایی است که هنوز «جای تبلیغ شما» هستند. پر شده تبلیغ واقعی است. روی هر کادر بزن، عکس یا لینک را عوض کن و ذخیره کن.</p>
+  {% for group in banner_groups %}
+  <h3 class="banner-place">{{ group.title }}</h3>
+  <div class="banner-admin">
+    {% for banner in group.banners %}
+      <article class="banner-card">
+        <details {% if edit_id == banner.pk %}open{% endif %}>
+          <summary>
+            <strong class="banner-where">{{ banner.where }}</strong>
+            <img src="{{ banner.image.url }}" alt="">
+            <strong>{{ banner.title|default:"بدون عنوان" }}</strong>
+            <span class="muted">کلیک: امروز {{ banner.clicks_today|persian }} · ۷ روز {{ banner.clicks_week|persian }} · ۳۰ روز {{ banner.clicks_month|persian }}</span>
+            <span class="muted" dir="ltr">{{ banner.link }}</span>
+          </summary>
+          <form method="post" enctype="multipart/form-data" class="stack">
+            {% csrf_token %}
+            <input type="hidden" name="form" value="edit">
+            <input type="hidden" name="id" value="{{ banner.pk }}">
+            <input type="hidden" name="place" value="{{ banner.place }}">
+            {% if banner.category_id %}<input type="hidden" name="category" value="{{ banner.category_id }}">{% endif %}
+            {% if edit_form and edit_id == banner.pk %}
+              {{ edit_form.non_field_errors }}
+              {{ edit_form.title.errors }}
+              {{ edit_form.image.errors }}
+              {{ edit_form.link.errors }}
+              {{ edit_form.place.errors }}
+              {{ edit_form.category.errors }}
+            {% endif %}
+            <label>عنوان
+              <input name="title" maxlength="80" value="{% if edit_form and edit_id == banner.pk %}{{ edit_form.title.value|default_if_none:'' }}{% else %}{{ banner.title }}{% endif %}">
+            </label>
+            <label>عکس جدید
+              <input type="file" name="image" accept="image/jpeg,image/png,image/webp">
+            </label>
+            <p class="muted">اگر فقط لینک را عوض می‌کنی، عکس را خالی بگذار.</p>
+            <label>لینک
+              <input name="link" type="url" required value="{% if edit_form and edit_id == banner.pk %}{{ edit_form.link.value|default_if_none:'' }}{% else %}{{ banner.link }}{% endif %}">
+            </label>
+            <button type="submit">ذخیره</button>
+          </form>
+        </details>
+        <form method="post" action="{% url 'delete_banner' banner.pk %}">
+          {% csrf_token %}
+          <button class="quiet" type="submit">حذف</button>
+        </form>
+      </article>
+    {% endfor %}
+  </div>
+  {% empty %}
+    <p class="muted">هنوز بنری نیست.</p>
+  {% endfor %}
+</section>
+
+{% if home_count >= banner_limit %}
+  <p>۳ بنر صفحه اول پر شده است. برای عکس جدید صفحه اول، یکی را حذف کن. بنر بخش‌ها جداگانه است.</p>
+{% endif %}
+<section class="panel">
+  <h2>بنر جدید</h2>
+  <form method="post" enctype="multipart/form-data" class="stack">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">گذاشتن بنر</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "talent/base.html" %}
+{% block title %}کد ورود — فیکسوگرام{% endblock %}
+{% block content %}
+<section class="auth">
+  <div class="auth-lead">
+    <h1>کد پیامک‌شده</h1>
+    <p>کد ۴ رقمی به <strong dir="ltr">{{ phone }}</strong> پیامک شد. اگر Allow را بزنید، رقم‌ها در مربع‌ها می‌نشینند و ورود انجام می‌شود.</p>
+  </div>
+  <form method="post" class="auth-form" id="code-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <label for="otp-0">کد ۴ رقمی</label>
+    <div class="otp">
+      <input id="otp-0" class="otp-box" inputmode="numeric" autocomplete="one-time-code" maxlength="4" autofocus>
+      <input id="otp-1" class="otp-box" inputmode="numeric" autocomplete="off" maxlength="1">
+      <input id="otp-2" class="otp-box" inputmode="numeric" autocomplete="off" maxlength="1">
+      <input id="otp-3" class="otp-box" inputmode="numeric" autocomplete="off" maxlength="1">
+    </div>
+    <input type="hidden" name="code" id="id_code">
+    {{ form.code.errors }}
+    <button type="submit">ورود</button>
+    <p class="muted auth-note"><a href="{% url 'login' %}">شماره را عوض کن یا کد تازه بگیر</a></p>
+  </form>
+  <script>
+    (function () {
+      var form = document.getElementById("code-form");
+      var hidden = document.getElementById("id_code");
+      var boxes = [0, 1, 2, 3].map(function (index) { return document.getElementById("otp-" + index); });
+      if (!form || !hidden || boxes.some(function (box) { return !box; })) return;
+      var sent = false;
+      var painting = false;
+      function asciiDigits(value) {
+        return String(value || "")
+          .replace(/[۰-۹]/g, function (digit) { return "۰۱۲۳۴۵۶۷۸۹".indexOf(digit); })
+          .replace(/[٠-٩]/g, function (digit) { return "٠١٢٣٤٥٦٧٨٩".indexOf(digit); })
+          .replace(/\D/g, "");
+      }
+      function sync() {
+        hidden.value = boxes.map(function (box) { return asciiDigits(box.value).slice(-1); }).join("");
+      }
+      function submitIfReady() {
+        sync();
+        if (hidden.value.length !== 4 || sent) return;
+        sent = true;
+        form.submit();
+      }
+      function paint(code) {
+        var chars = asciiDigits(code).slice(0, 4).split("");
+        painting = true;
+        boxes.forEach(function (box, index) { box.value = chars[index] || ""; });
+        painting = false;
+        hidden.value = chars.join("");
+        if (chars.length === 4) submitIfReady();
+        else if (chars.length) boxes[chars.length].focus();
+      }
+      boxes.forEach(function (box, index) {
+        box.addEventListener("input", function () {
+          if (painting) return;
+          var typed = asciiDigits(box.value);
+          if (typed.length > 1) {
+            paint(typed);
+            return;
+          }
+          box.value = typed;
+          sync();
+          if (typed && index < 3) boxes[index + 1].focus();
+          submitIfReady();
+        });
+        box.addEventListener("keydown", function (event) {
+          if (event.key === "Backspace" && !box.value && index > 0) {
+            boxes[index - 1].focus();
+            boxes[index - 1].value = "";
+            sync();
+          }
+        });
+        box.addEventListener("paste", function (event) {
+          var text = (event.clipboardData || window.clipboardData).getData("text");
+          if (!asciiDigits(text)) return;
+          event.preventDefault();
+          paint(text);
+        });
+      });
+      var watch = setInterval(function () {
+        var sitting = asciiDigits(boxes[0].value);
+        if (sitting.length > 1) paint(sitting);
+      }, 400);
+      form.addEventListener("submit", function () { clearInterval(watch); });
+      if (!("OTPCredential" in window) || !window.isSecureContext) return;
+      navigator.credentials.get({ otp: { transport: ["sms"] } }).then(function (otp) {
+        if (otp && otp.code) paint(otp.code);
+      }).catch(function () {});
+    })();
+  </script>
+</section>
+{% endblock %}

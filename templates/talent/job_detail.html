@@ -1,0 +1,97 @@
+{% extends "talent/base.html" %}
+{% block title %}{{ post.title }} — استخدام و کاریابی{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="مسیر">
+  <a href="{% url 'jobs' %}">استخدام و کاریابی</a>
+  <span>{{ post.title }}</span>
+</nav>
+<article class="job-sheet">
+  <div class="job-main">
+    <aside class="job-alarm" role="note">
+      <strong>زنگ خطر قبل از همکاری</strong>
+      <p class="pre">{{ job_warning }}</p>
+    </aside>
+    <p class="badge {% if post.kind == 'hire' %}ok{% else %}wait{% endif %}">{{ post.get_kind_display }}</p>
+    <h1>{{ post.title }}</h1>
+    {% url 'job_detail' post.pk as share_path %}
+    {% include "talent/share_save.html" with kind="job" object_id=post.pk saved=item_saved share_path=share_path title=post.title %}
+    {% if post.show_views %}<p class="job-views">{{ post.view_line }}</p>{% endif %}
+    <p class="muted">
+      {% if post.city %}{{ post.city }}{% else %}شهر ثبت نشده{% endif %}
+      {% if post.category %} · {{ post.category }}{% endif %}
+      · {{ post.stay_line }}
+    </p>
+    <div class="job-actions">
+      {% if owner %}
+        <p class="muted">این آگهی را خودت ثبت کرده‌ای.</p>
+      {% elif user.is_authenticated %}
+        <a class="button" href="{% url 'start_thread' post.author.profile.pk %}">چت</a>
+      {% else %}
+        <a class="button" href="{% url 'login' %}?next={% url 'start_thread' post.author.profile.pk %}">چت</a>
+      {% endif %}
+      <a class="button quiet" href="{% url 'profile' post.author.profile.pk %}">صفحهٔ درخواست‌کننده</a>
+      {% if not owner %}
+        {% if user.is_authenticated %}
+          <a class="report-link" href="{% url 'report_job' post.pk %}">گزارش تخلف</a>
+        {% else %}
+          <a class="report-link" href="{% url 'login' %}?next={% url 'report_job' post.pk %}">گزارش تخلف</a>
+        {% endif %}
+      {% endif %}
+    </div>
+    <table class="job-facts">
+      <tr>
+        <th>درخواست‌کننده</th>
+        <td><a href="{% url 'profile' post.author.profile.pk %}">{{ post.author.profile.display_name|default:"بدون نام" }}</a></td>
+      </tr>
+      <tr>
+        <th>نوع</th>
+        <td>{{ post.get_kind_display }}</td>
+      </tr>
+      <tr>
+        <th>شهر</th>
+        <td>{% if post.city %}{{ post.city }}{% else %}ثبت نشده{% endif %}</td>
+      </tr>
+      {% if post.category %}
+      <tr>
+        <th>زمینه</th>
+        <td>{{ post.category }}</td>
+      </tr>
+      {% endif %}
+      <tr>
+        <th>مدت نمایش</th>
+        <td>{{ post.stay_line }}</td>
+      </tr>
+    </table>
+    <section>
+      <h2>توضیحات</h2>
+      <p class="pre">{{ post.body }}</p>
+    </section>
+  </div>
+  <aside class="job-side">
+    <p class="eyebrow">درخواست‌کننده</p>
+    <a class="job-person" href="{% url 'profile' post.author.profile.pk %}">
+      {% if post.author.profile.avatar %}
+        <img class="avatar" src="{{ post.author.profile.avatar.url }}" alt="">
+      {% else %}
+        <span class="avatar fallback">{{ post.author.profile.display_name|default:"؟"|slice:":1" }}</span>
+      {% endif %}
+      <strong>{{ post.author.profile.display_name|default:"بدون نام" }}</strong>
+      {% if post.author.profile.business_name %}<span>{{ post.author.profile.business_name }}</span>{% endif %}
+      {% if post.author.profile.city %}<span class="muted">{{ post.author.profile.city }}</span>{% endif %}
+    </a>
+    {% if not owner %}
+      {% if user.is_authenticated %}
+        <a class="button" href="{% url 'start_thread' post.author.profile.pk %}">چت با درخواست‌کننده</a>
+      {% else %}
+        <a class="button" href="{% url 'login' %}?next={% url 'start_thread' post.author.profile.pk %}">چت با درخواست‌کننده</a>
+      {% endif %}
+    {% endif %}
+    {% if post.author.profile.latitude and post.author.profile.longitude %}
+      {% include "talent/map_assets.html" %}
+      <input type="hidden" id="job-lat" value="{{ post.author.profile.latitude }}">
+      <input type="hidden" id="job-lng" value="{{ post.author.profile.longitude }}">
+      {% include "talent/location_picker.html" with picker_id="job" lat_id="job-lat" lng_id="job-lng" readonly=1 %}
+    {% endif %}
+  </aside>
+</article>
+{% endblock %}
