@@ -4,9 +4,9 @@
 {% block content %}
 {% include "talent/banner_rotator.html" with slider_id="home-banners" %}
 <section class="hero">
-  <p class="eyebrow">{{ home_copy.eyebrow }}</p>
+  {% if home_copy.eyebrow %}<p class="eyebrow">{{ home_copy.eyebrow }}</p>{% endif %}
   <h1>{{ home_copy.headline }}</h1>
-  <p>{{ home_copy.lead }}</p>
+  {% if home_copy.lead %}<p class="hero-lead">{{ home_copy.lead }}</p>{% endif %}
 </section>
 
 <form class="global-search" id="search-form" method="get">
