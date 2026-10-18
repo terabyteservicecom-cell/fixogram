@@ -51,9 +51,11 @@ from talent.forms import (
     ChargeForm,
     GroupMessageForm,
     JobForm,
+    ForgotUsernameForm,
     LoginForm,
     MessageForm,
     CodeForm,
+    SimplePasswordChangeForm,
     SmsSettingForm,
     PhotoForm,
     accounts_for_phone,
@@ -80,7 +82,7 @@ from talent.forms import (
     WelcomeForm,
 )
 from talent.geo import haversine_km
-from talent.sms import SmsError, TooSoon, issue_code, verify_code
+from talent.sms import SmsError, TooSoon, deliver_plain, issue_code, verify_code
 from talent.cities import CITIES
 from talent.provinces import PROVINCES, province_choices
 from talent.models import (
@@ -122,6 +124,7 @@ from talent.models import (
 
 class PersianPasswordChange(PasswordChangeView):
     template_name = "talent/password.html"
+    form_class = SimplePasswordChangeForm
     success_url = reverse_lazy("dashboard")
 
     def form_valid(self, form):
@@ -192,6 +195,13 @@ def visible_username(user, phone):
     if user.username and user.username != phone:
         return user.username
     return ""
+
+
+def username_recovery_message(user, phone):
+    name = visible_username(user, phone)
+    if name:
+        return f"نام کاربری فیکسوگرام: {name}\nورود با شماره موبایل و کد پیامکی است."
+    return "ورود فیکسوگرام با همین شماره موبایل است. نام کاربری جدا تنظیم نکرده‌ای."
 
 
 def can_see_phone(user, profile):
@@ -624,8 +634,13 @@ def enter(request):
     if request.method == "POST" and form.is_valid():
         phone = form.cleaned_data["phone"]
         if signing_up:
+            if phone_taken(phone):
+                messages.error(request, "این شماره قبلاً ثبت شده. از صفحه ورود استفاده کن.")
+                return redirect("login")
             try:
                 with transaction.atomic():
+                    if phone_taken(phone):
+                        raise IntegrityError("phone taken")
                     user = User(username=phone)
                     user.set_unusable_password()
                     user.save()
@@ -723,6 +738,72 @@ def login_code(request):
         else:
             form.add_error("code", "کد اشتباه است.")
     return render(request, "talent/login_code.html", {"form": form, "phone": phone})
+
+
+def forgot_username(request):
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+    form = ForgotUsernameForm(request.POST or None)
+    if request.method == "GET":
+        request.session.pop("recover_phone", None)
+    if request.method == "POST" and form.is_valid():
+        phone = form.cleaned_data["phone"]
+        reason = login_block_reason((accounts_for_phone(phone) or [None])[0])
+        if reason:
+            form.add_error(None, reason)
+        else:
+            try:
+                issue_code(phone, request.get_host())
+            except TooSoon:
+                request.session["recover_phone"] = phone
+                messages.info(request, "کد قبلی هنوز معتبر است. همان را وارد کن.")
+                return redirect("forgot_username_code")
+            except SmsError as exc:
+                form.add_error(None, str(exc))
+            else:
+                request.session["recover_phone"] = phone
+                return redirect("forgot_username_code")
+    return render(request, "talent/forgot_username.html", {"form": form})
+
+
+def forgot_username_code(request):
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+    phone = request.session.get("recover_phone")
+    if not phone:
+        return redirect("forgot_username")
+    form = CodeForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        result = verify_code(phone, form.cleaned_data["code"])
+        if result == "ok":
+            user = (accounts_for_phone(phone) or [None])[0]
+            reason = login_block_reason(user)
+            if reason or user is None:
+                form.add_error(None, reason or "این شماره ثبت نشده. اول ثبت‌نام کن.")
+            else:
+                profile = profile_for(user)
+                text = username_recovery_message(user, profile.phone)
+                try:
+                    deliver_plain(phone, text)
+                except SmsError as exc:
+                    form.add_error(None, str(exc))
+                else:
+                    request.session.pop("recover_phone", None)
+                    return render(
+                        request,
+                        "talent/forgot_username_done.html",
+                        {
+                            "phone": phone,
+                            "username": visible_username(user, profile.phone),
+                        },
+                    )
+        elif result == "expired":
+            form.add_error("code", "این کد منقضی شده. دوباره کد بگیر.")
+        elif result == "locked":
+            form.add_error("code", "تلاش‌ها تمام شد. یک کد تازه بگیر.")
+        else:
+            form.add_error("code", "کد اشتباه است.")
+    return render(request, "talent/forgot_username_code.html", {"form": form, "phone": phone})
 
 
 @login_required
@@ -2996,7 +3077,7 @@ def blog_write(request, pk=None):
             messages.success(request, "نوشته حذف شد.")
             return redirect("blog_write")
         elif kind == "post":
-            post_form = PostForm(request.POST, instance=post)
+            post_form = PostForm(request.POST, request.FILES, instance=post)
             if post_form.is_valid():
                 saved = post_form.save(commit=False)
                 if saved.author_id is None:
@@ -3014,7 +3095,7 @@ def blog_write(request, pk=None):
             name=item.title,
             indexed=item.is_published,
             blocked="این نوشته پیش‌نویس است و در گوگل نمی‌آید.",
-            has_image="<img" in (item.body or ""),
+            has_image=bool(item.cover) or "<img" in (item.body or ""),
         )
     if post is not None:
         attach_audit(
@@ -3022,7 +3103,7 @@ def blog_write(request, pk=None):
             name=post.title,
             indexed=post.is_published,
             blocked="این نوشته پیش‌نویس است و در گوگل نمی‌آید.",
-            has_image="<img" in (post.body or ""),
+            has_image=bool(post.cover) or "<img" in (post.body or ""),
         )
     return render(
         request,
@@ -3194,7 +3275,10 @@ def _save_profile_specialties(profile, category_ids):
 
 
 def _write_recruit(profile, cleaned, role_ids):
-    user = User(username=cleaned["phone"])
+    phone = cleaned["phone"]
+    if phone_taken(phone):
+        raise IntegrityError("phone taken")
+    user = User(username=phone)
     user.set_unusable_password()
     user.save()
     recruit = profile_for(user)
@@ -3206,7 +3290,7 @@ def _write_recruit(profile, cleaned, role_ids):
     recruit.headline = cleaned["headline"]
     recruit.bio = cleaned["bio"]
     recruit.about_business = cleaned["about_business"]
-    recruit.phone = cleaned["phone"]
+    recruit.phone = phone
     recruit.contact_phone = cleaned.get("contact_phone") or ""
     recruit.instagram = cleaned["instagram"]
     recruit.telegram = cleaned["telegram"]
@@ -3218,7 +3302,7 @@ def _write_recruit(profile, cleaned, role_ids):
     recruit.recruited_by = profile
     if cleaned.get("avatar"):
         recruit.avatar = cleaned["avatar"]
-    username = cleaned.get("username") or cleaned["phone"]
+    username = cleaned.get("username") or phone
     if user.username != username:
         user.username = username
         user.save(update_fields=["username"])

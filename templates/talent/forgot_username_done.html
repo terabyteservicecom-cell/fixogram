@@ -1,0 +1,15 @@
+{% extends "talent/base.html" %}
+{% block title %}نام کاربری — فیکسوگرام{% endblock %}
+{% block content %}
+<section class="auth">
+  <div class="auth-lead">
+    <h1>نام کاربری</h1>
+    {% if username %}
+      <p>نام کاربری حسابت <strong dir="ltr">{{ username }}</strong> است. همان را در پیامک هم فرستادیم.</p>
+    {% else %}
+      <p>برای این حساب نام کاربری جدا تنظیم نشده. ورود با شماره <strong dir="ltr">{{ phone }}</strong> و کد پیامکی است. توضیح را در پیامک هم فرستادیم.</p>
+    {% endif %}
+  </div>
+  <p class="muted auth-note"><a href="{% url 'login' %}">رفتن به ورود</a></p>
+</section>
+{% endblock %}

@@ -3,6 +3,7 @@ from io import BytesIO
 from pathlib import Path
 
 from django import forms
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.files.base import ContentFile
@@ -40,6 +41,40 @@ class CitySelect(forms.Select):
 PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
 
+def normalize_password(value):
+    """رقم فارسی/عربی را به لاتین تبدیل می‌کند تا رمز سادهٔ عددی درست ذخیره شود."""
+    return (value or "").translate(PERSIAN_DIGITS)
+
+
+class SimplePasswordChangeForm(PasswordChangeForm):
+    """رمز ساده حداقل ۴ کاراکتر (مثل ۶ رقم) بدون قوانین پیچیدگی."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        tip = "رمز ساده کافی است؛ حداقل ۴ رقم یا حرف (مثل ۱۲۳۴۵۶)."
+        for name in ("old_password", "new_password1", "new_password2"):
+            self.fields[name].help_text = tip if name == "new_password1" else ""
+            self.fields[name].widget.attrs.update(
+                {"autocomplete": "new-password" if name != "old_password" else "current-password"}
+            )
+
+    def clean_old_password(self):
+        self.cleaned_data["old_password"] = normalize_password(self.cleaned_data.get("old_password"))
+        return super().clean_old_password()
+
+    def clean_new_password1(self):
+        password = normalize_password(self.cleaned_data.get("new_password1"))
+        self.cleaned_data["new_password1"] = password
+        return password
+
+    def clean_new_password2(self):
+        password1 = normalize_password(self.cleaned_data.get("new_password1"))
+        password2 = normalize_password(self.cleaned_data.get("new_password2"))
+        self.cleaned_data["new_password1"] = password1
+        self.cleaned_data["new_password2"] = password2
+        return super().clean_new_password2()
+
+
 def normalize_phone(value):
     value = (value or "").translate(PERSIAN_DIGITS)
     return re.sub(r"[\s\-()]", "", value)
@@ -58,8 +93,29 @@ def validate_phone(value):
     return phone
 
 
+def phone_lookup_keys(phone):
+    """همه شکل‌های رایج یک شماره برای جستجوی تکراری."""
+    phone = validate_phone(phone)
+    local = phone[1:]  # 9xxxxxxxxx
+    keys = {
+        phone,
+        local,
+        f"+98{local}",
+        f"0098{local}",
+        f"98{local}",
+    }
+    persian = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+    keys.update({key.translate(persian) for key in list(keys)})
+    return keys
+
+
 def accounts_for_phone(phone, user=None):
-    profiles = Profile.objects.filter(phone=phone).select_related("user").order_by("id")
+    keys = phone_lookup_keys(phone)
+    profiles = (
+        Profile.objects.filter(phone__in=keys)
+        .select_related("user")
+        .order_by("id")
+    )
     if user is not None:
         profiles = profiles.exclude(user=user)
     found = []
@@ -69,7 +125,7 @@ def accounts_for_phone(phone, user=None):
             continue
         seen.add(profile.user_id)
         found.append(profile.user)
-    matches = User.objects.filter(username=phone).order_by("id")
+    matches = User.objects.filter(username__in=keys).order_by("id")
     if user is not None:
         matches = matches.exclude(pk=user.pk)
     for account in matches:
@@ -108,6 +164,10 @@ IMAGE_LIMIT_TEXT = "JPG، PNG یا WEBP. اندازه و حجم را خود سا
 BANNER_SIZE_TEXT = (
     "صفحه اول به ۱۲۰۰ در ۳۰۰ پیکسل تنظیم می‌شود. "
     "بنر دسته و بلاگ به ۵۶۰ در ۱۶۰ پیکسل تنظیم می‌شود. "
+    "فرمت JPG، PNG یا WEBP."
+)
+POST_COVER_SIZE_TEXT = (
+    "تصویر کنار نوشته به ۸۰۰ در ۴۵۰ پیکسل تنظیم می‌شود. "
     "فرمت JPG، PNG یا WEBP."
 )
 
@@ -192,6 +252,14 @@ class PhoneStartForm(forms.Form):
         return validate_phone(self.cleaned_data["phone"])
 
 
+class ForgotUsernameForm(PhoneStartForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["phone"].help_text = (
+            "اول کد تایید پیامک می‌شود؛ بعد نام کاربری‌ات را همان‌جا و در پیامک می‌فرستیم."
+        )
+
+
 class LoginForm(forms.Form):
     phone = forms.CharField(label="شماره موبایل", max_length=20)
 
@@ -200,6 +268,7 @@ class LoginForm(forms.Form):
         self.fields["phone"].widget.attrs.update(
             {"inputmode": "tel", "autocomplete": "tel", "placeholder": "09121234567"}
         )
+        self.fields["phone"].help_text = "هر شماره فقط یک حساب دارد."
 
     def clean_phone(self):
         return validate_phone(self.cleaned_data["phone"])
@@ -302,7 +371,9 @@ class SignupForm(forms.Form):
     def clean_phone(self):
         phone = validate_phone(self.cleaned_data["phone"])
         if phone_taken(phone):
-            raise forms.ValidationError("این شماره قبلاً ثبت شده. از صفحه ورود استفاده کن.")
+            raise forms.ValidationError(
+                "این شماره قبلاً ثبت شده و فقط یک حساب دارد. از صفحه ورود استفاده کن."
+            )
         return phone
 
 
@@ -601,9 +672,10 @@ class BlogCategoryForm(forms.ModelForm):
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ("title", "seo_title", "seo_description", "category", "body", "is_published")
+        fields = ("title", "cover", "category", "body", "is_published", "seo_title", "seo_description")
         labels = {
             "title": "عنوان",
+            "cover": "تصویر نوشته",
             "seo_title": "عنوان گوگل",
             "seo_description": "توضیح گوگل",
             "category": "دسته",
@@ -624,6 +696,7 @@ class PostForm(forms.ModelForm):
             )
         }
         help_texts = {
+            "cover": POST_COVER_SIZE_TEXT,
             "seo_title": "لینک آبی گوگل. حدود ۵۰ تا ۶۰ حرف. اگر خالی بماند از عنوان نوشته ساخته می‌شود.",
             "seo_description": "متن خاکستری زیر لینک. حدود ۱۲۰ تا ۱۶۰ حرف. شماره تلفن را ننویس. اگر خالی بماند از متن نوشته ساخته می‌شود.",
             "body": "می‌توانی HTML کامل، CSS، قالب و کلاس بنویسی. تگ style، template، section و ویژگی class و style قبول می‌شود. اسکریپت و کد خطرناک ذخیره نمی‌شود.",
@@ -634,6 +707,12 @@ class PostForm(forms.ModelForm):
         if not title:
             raise forms.ValidationError("عنوان را بنویس.")
         return title
+
+    def clean_cover(self):
+        cover = self.cleaned_data.get("cover")
+        if isinstance(cover, UploadedFile):
+            return prepare_image(cover, 800, 450, 180 * 1024, cover=True)
+        return cover
 
     def clean_seo_title(self):
         return " ".join((self.cleaned_data.get("seo_title") or "").split())

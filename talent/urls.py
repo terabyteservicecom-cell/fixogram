@@ -25,6 +25,12 @@ urlpatterns = [
     path("signup/", views.enter, name="signup"),
     path("login/", views.enter, name="login"),
     path("login/code/", views.login_code, name="login_code"),
+    path("login/forgot-username/", views.forgot_username, name="forgot_username"),
+    path(
+        "login/forgot-username/code/",
+        views.forgot_username_code,
+        name="forgot_username_code",
+    ),
     path("desk/sms/", views.sms_settings, name="sms_settings"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("account/password/", views.PersianPasswordChange.as_view(), name="password_change"),

@@ -38,7 +38,7 @@
       {% csrf_token %}
       {{ form.as_p }}
       <button type="submit">دریافت کد</button>
-      <p class="muted auth-note">حساب نداری؟ <a href="{% url 'signup' %}">ثبت‌نام کن</a>. هر شماره فقط یک حساب دارد.</p>
+      <p class="muted auth-note">حساب نداری؟ <a href="{% url 'signup' %}">ثبت‌نام کن</a>. هر شماره فقط یک حساب دارد. <a href="{% url 'forgot_username' %}">نام کاربری را فراموش کرده‌ای؟</a></p>
     </form>
   {% endif %}
 </section>

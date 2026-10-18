@@ -60,6 +60,13 @@ def _kavenegar(api_key, path, fields):
         raise SmsError("پیامک ارسال نشد. کلید، نام قالب و شارژ پنل کاوه‌نگار را بررسی کن.")
 
 
+def deliver_plain(phone, message):
+    api_key, _template = credentials()
+    if not api_key:
+        raise SmsError("کلید یا نام قالب کاوه‌نگار در پنل ذخیره نشده.")
+    _kavenegar(api_key, "sms/send.json", {"receptor": phone, "message": message})
+
+
 def deliver_code(phone, code, host="85.198.54.48"):
     api_key, template = credentials()
     if not api_key:
@@ -68,7 +75,7 @@ def deliver_code(phone, code, host="85.198.54.48"):
     # The last line is what Chrome reads when the user taps Allow.
     message = f"کد ورود فیکسوگرام: {code}\n@{host} #{code}"
     try:
-        _kavenegar(api_key, "sms/send.json", {"receptor": phone, "message": message})
+        deliver_plain(phone, message)
         return
     except SmsError:
         logger.warning("kavenegar formatted send failed; falling back to lookup")

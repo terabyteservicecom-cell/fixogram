@@ -397,6 +397,40 @@ class CastingPlatformTests(TestCase):
         user.profile.refresh_from_db()
         self.assertEqual(user.profile.phone, "09123334455")
 
+    def test_forgot_username_sends_name_after_code(self):
+        user = User.objects.get(profile__phone="09120000000")
+        user.username = "mina"
+        user.save(update_fields=["username"])
+        page = self.client.get(reverse("login"))
+        self.assertContains(page, "نام کاربری را فراموش کرده‌ای")
+
+        with patch("talent.sms.secrets.randbelow", return_value=3821):
+            with patch("talent.sms.deliver_code"):
+                started = self.client.post(
+                    reverse("forgot_username"),
+                    {"phone": "09120000000"},
+                )
+        self.assertRedirects(started, reverse("forgot_username_code"))
+
+        with patch("talent.views.deliver_plain") as send_plain:
+            done = self.client.post(reverse("forgot_username_code"), {"code": "4821"})
+        self.assertEqual(done.status_code, 200)
+        self.assertContains(done, "mina")
+        send_plain.assert_called_once()
+        self.assertIn("mina", send_plain.call_args[0][1])
+
+    def test_forgot_username_without_custom_name_explains_phone_login(self):
+        user = User.objects.get(profile__phone="09120000000")
+        user.username = user.profile.phone
+        user.save(update_fields=["username"])
+        with patch("talent.sms.secrets.randbelow", return_value=3821):
+            with patch("talent.sms.deliver_code"):
+                self.client.post(reverse("forgot_username"), {"phone": "09120000000"})
+        with patch("talent.views.deliver_plain") as send_plain:
+            done = self.client.post(reverse("forgot_username_code"), {"code": "4821"})
+        self.assertContains(done, "نام کاربری جدا")
+        self.assertIn("نام کاربری جدا", send_plain.call_args[0][1])
+
     def test_login_phone_is_locked_and_only_two_extra_photos(self):
         self.client.force_login(self.actor)
         page = self.client.get(reverse("dashboard"))
@@ -961,6 +995,14 @@ class CastingPlatformTests(TestCase):
         self.assertEqual(again.status_code, 200)
         self.assertContains(again, "قبلاً ثبت شده")
         self.assertEqual(User.objects.filter(profile__phone="09125556677").count(), 1)
+
+    def test_same_phone_variant_formats_cannot_signup_twice(self):
+        first = self._signup("09128887766", name="سارا")
+        self.assertRedirects(first, reverse("login"))
+        again = self._signup("+989128887766", name="سارا ۲")
+        self.assertEqual(again.status_code, 200)
+        self.assertContains(again, "قبلاً ثبت شده")
+        self.assertEqual(User.objects.filter(profile__phone="09128887766").count(), 1)
 
     def test_manager_can_archive_or_delete_an_account(self):
         manager = User.objects.create_user("09124770435")
@@ -1909,6 +1951,44 @@ class CastingPlatformTests(TestCase):
         self.assertContains(listing, "blog-cats")
         self.assertContains(listing, "تازه‌ها")
         self.assertContains(listing, "1 نوشته")
+
+    def test_blog_post_cover_is_resized_like_other_uploads(self):
+        news = BlogCategory.objects.create(name="کاور تست")
+        self.seeker.is_staff = True
+        self.seeker.save()
+        self.client.force_login(self.seeker)
+        page = self.client.get(reverse("blog_write"))
+        self.assertContains(page, "تصویر نوشته")
+        self.assertContains(page, "۸۰۰ در ۴۵۰")
+        buffer = BytesIO()
+        Image.new("RGB", (1200, 800), (20, 90, 160)).save(buffer, format="JPEG", quality=90)
+        cover = SimpleUploadedFile("wide.jpg", buffer.getvalue(), content_type="image/jpeg")
+        created = self.client.post(
+            reverse("blog_write"),
+            {
+                "form": "post",
+                "title": "نوشته با کاور",
+                "category": news.pk,
+                "body": "<p>متن کافی برای نوشته با تصویر کاور است.</p>",
+                "is_published": "on",
+                "cover": cover,
+            },
+        )
+        post = Post.objects.get(title="نوشته با کاور")
+        self.assertRedirects(created, reverse("blog_detail", args=[post.pk]))
+        self.assertTrue(post.cover)
+        with Image.open(post.cover) as opened:
+            self.assertEqual(opened.size, (800, 450))
+        detail = self.client.get(reverse("blog_detail", args=[post.pk]))
+        self.assertContains(detail, "post-cover")
+        self.assertContains(detail, "post-head has-cover")
+        listing = self.client.get(reverse("blog"))
+        self.assertContains(listing, "post-thumb")
+        self.assertContains(listing, "blog-cat-icon")
+        edit = self.client.get(reverse("blog_edit", args=[post.pk]))
+        self.assertContains(edit, "ویرایش نوشته")
+        self.assertContains(edit, "۸۰۰ در ۴۵۰")
+        self.assertNotContains(edit, "همه نوشته‌ها")
 
     def test_blog_has_two_banners_and_comments(self):
         def picture(name):
